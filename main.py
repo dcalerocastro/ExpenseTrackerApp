@@ -224,6 +224,7 @@ elif page == "Sincronizar Correos":
                                 with col1:
                                     if st.button("✅ Guardar", key=f"save_{id(transaction)}"):
                                         try:
+                                            # Crear transacción con los valores actualizados del formulario
                                             transaction_to_save = {
                                                 'fecha': transaction['fecha'],
                                                 'monto': float(transaction['monto']),
@@ -231,14 +232,19 @@ elif page == "Sincronizar Correos":
                                                 'categoria': str(transaction['categoria']),
                                                 'tipo': 'real'
                                             }
+                                            
+                                            # Guardar en CSV
                                             save_transaction(transaction_to_save)
+                                            
+                                            # Actualizar estado
                                             st.session_state.transactions = load_transactions()
-                                            if transaction in st.session_state.pending_transactions:
-                                                st.session_state.pending_transactions.remove(transaction)
-                                            st.success("¡Transacción guardada!")
+                                            st.session_state.pending_transactions.remove(transaction)
+                                            
+                                            st.success("¡Transacción guardada correctamente!")
                                             st.rerun()
                                         except Exception as e:
                                             st.error(f"Error al guardar: {str(e)}")
+                                            print(f"Error detallado: {str(e)}")
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{id(transaction)}"):
                                         st.info("Transacción descartada")
