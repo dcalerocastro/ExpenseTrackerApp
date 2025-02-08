@@ -35,7 +35,7 @@ def load_transactions():
     """Load transactions from CSV file"""
     ensure_data_files()
     df = pd.read_csv(TRANSACTIONS_FILE)
-    df['fecha'] = pd.to_datetime(df['fecha'])
+    df['fecha'] = pd.to_datetime(df['fecha'].str.strip(), format='mixed')
 
     # Asegurar que exista la columna 'tipo'
     if 'tipo' not in df.columns:
