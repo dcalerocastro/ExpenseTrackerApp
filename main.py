@@ -173,29 +173,21 @@ elif page == "Sincronizar Correos":
     La aplicación solo leerá los correos de notificaciones del BCP.
     """)
 
-    # Formulario de configuración de Gmail
-    with st.form("gmail_config"):
-        email = st.text_input("Correo Gmail", value=os.getenv('EMAIL_USER', ''))
-        password = st.text_input("Contraseña de Aplicación", type="password", help="Contraseña de 16 caracteres generada por Google")
+    # Verificar si hay credenciales guardadas
+    email = os.getenv('EMAIL_USER')
+    password = os.getenv('EMAIL_PASSWORD')
 
+    if not email or not password:
+        st.error("No se encontraron credenciales. Por favor configura tus secrets en la herramienta Secrets:")
         st.markdown("""
-        ### ¿Cómo obtener la Contraseña de Aplicación?
-        1. Ve a [Configuración de Seguridad de Google](https://myaccount.google.com/security)
-        2. Activa la "Verificación en dos pasos" si no está activada
-        3. Busca "Contraseñas de aplicación" (casi al final de la página)
-        4. Selecciona "Otra" y nombra la app como "Streamlit App"
-        5. Copia la contraseña de 16 caracteres que Google te genera
+        1. Ve a la herramienta Secrets en el panel de herramientas
+        2. Agrega dos secrets:
+           - EMAIL_USER: Tu dirección de Gmail
+           - EMAIL_PASSWORD: Tu contraseña de aplicación de Google
         """)
-
-        submit_creds = st.form_submit_button("Guardar Credenciales")
-
-        if submit_creds and email and password:
-            try:
-                os.environ['EMAIL_USER'] = email
-                os.environ['EMAIL_PASSWORD'] = password
-                st.success("¡Credenciales guardadas! Ahora puedes sincronizar tus notificaciones.")
-            except Exception as e:
-                st.error(f"Error al guardar credenciales: {str(e)}")
+        return
+    
+    st.success("Credenciales configuradas correctamente")
 
     # Only show sync button if credentials are configured
     if os.getenv('EMAIL_USER') and os.getenv('EMAIL_PASSWORD'):
