@@ -207,39 +207,30 @@ elif page == "Sincronizar Correos":
                             st.session_state.pending_transactions = transactions
 
                         # Mostrar transacciones pendientes
-                        remaining_transactions = []
-                        for transaction in st.session_state.pending_transactions:
+                        for transaction in st.session_state.pending_transactions[:]:  # Usar una copia para iterar
                             with st.expander(f"{transaction['descripcion']} - S/ {transaction['monto']} ({transaction['fecha'].strftime('%Y-%m-%d')})", expanded=True):
                                 col1, col2 = st.columns(2)
                                 with col1:
-                                    transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
-                                    transaction['monto'] = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
+                                    fecha = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
+                                    monto = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
                                 with col2:
-                                    transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
-                                    transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
-
-                                transaction['tipo'] = 'real'  # Las transacciones del banco son siempre reales
+                                    descripcion = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
+                                    categoria = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
 
                                 col1, col2 = st.columns(2)
                                 with col1:
                                     if st.button("✅ Guardar", key=f"save_{id(transaction)}"):
                                         try:
-                                            # Crear transacción con los valores actualizados del formulario
                                             transaction_to_save = {
-                                                'fecha': transaction['fecha'],
-                                                'monto': float(transaction['monto']),
-                                                'descripcion': str(transaction['descripcion']),
-                                                'categoria': str(transaction['categoria']),
+                                                'fecha': fecha,
+                                                'monto': float(monto),
+                                                'descripcion': str(descripcion),
+                                                'categoria': str(categoria),
                                                 'tipo': 'real'
                                             }
-                                            
-                                            # Guardar en CSV
                                             save_transaction(transaction_to_save)
-                                            
-                                            # Actualizar estado
-                                            st.session_state.transactions = load_transactions()
                                             st.session_state.pending_transactions.remove(transaction)
-                                            
+                                            st.session_state.transactions = load_transactions()
                                             st.success("¡Transacción guardada correctamente!")
                                             st.rerun()
                                         except Exception as e:
@@ -247,6 +238,7 @@ elif page == "Sincronizar Correos":
                                             print(f"Error detallado: {str(e)}")
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{id(transaction)}"):
+                                        st.session_state.pending_transactions.remove(transaction)
                                         st.info("Transacción descartada")
                                         st.rerun()
 
