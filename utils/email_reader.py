@@ -46,8 +46,8 @@ class EmailReader:
             self.imap.select('INBOX')
             print("Bandeja INBOX seleccionada")
 
-            # Buscar correos del BCP usando formato correcto de IMAP
-            search_query = 'SUBJECT "Realizaste un consumo con tu Tarjeta de Credito BCP - Servicio de Notificaciones BCP"'
+            # Buscar correos del BCP usando criterios más flexibles
+            search_query = 'SUBJECT "BCP" SUBJECT "consumo"'
             print(f"Ejecutando búsqueda con query: {search_query}")
             result, messages = self.imap.search(None, search_query)
             print(f"Resultado de búsqueda: {result}")
@@ -66,6 +66,9 @@ class EmailReader:
 
                         email_body = msg_data[0][1]
                         email_message = email.message_from_bytes(email_body, policy=policy.default)
+
+                        # Imprimir el asunto para debugging
+                        print(f"Procesando correo con asunto: {email_message['subject']}")
 
                         # Extraer el contenido del correo
                         if email_message.is_multipart():
