@@ -14,8 +14,10 @@ class EmailReader:
     def connect(self):
         """Establece conexión con el servidor IMAP"""
         try:
+            print(f"Intentando conectar a {self.imap_server} con usuario {self.email_user}")
             self.imap = imaplib.IMAP4_SSL(self.imap_server)
             self.imap.login(self.email_user, self.email_password)
+            print("Conexión IMAP exitosa")
             return True
         except imaplib.IMAP4.error as e:
             error_msg = str(e)
@@ -42,10 +44,13 @@ class EmailReader:
                     return transactions
 
             self.imap.select('INBOX')
+            print("Bandeja INBOX seleccionada")
 
             # Buscar correos del BCP usando formato correcto de IMAP
             search_query = 'SUBJECT "Realizaste un consumo con tu Tarjeta de Credito BCP - Servicio de Notificaciones BCP"'
+            print(f"Ejecutando búsqueda con query: {search_query}")
             result, messages = self.imap.search(None, search_query)
+            print(f"Resultado de búsqueda: {result}")
 
             if result == 'OK' and messages[0]:
                 message_nums = messages[0].split()
@@ -56,6 +61,7 @@ class EmailReader:
                         # Obtener el correo
                         _, msg_data = self.imap.fetch(num, '(RFC822)')
                         if not msg_data or not msg_data[0]:
+                            print(f"No se pudo obtener datos del correo {num}")
                             continue
 
                         email_body = msg_data[0][1]
@@ -73,6 +79,7 @@ class EmailReader:
                                     transaction = parse_email_content(content)
                                     if transaction:
                                         transactions.append(transaction)
+                                        print(f"Transacción encontrada: {transaction}")
                                     break
                         else:
                             try:
@@ -83,6 +90,7 @@ class EmailReader:
                             transaction = parse_email_content(content)
                             if transaction:
                                 transactions.append(transaction)
+                                print(f"Transacción encontrada: {transaction}")
 
                     except Exception as e:
                         print(f"Error procesando correo individual: {str(e)}")
