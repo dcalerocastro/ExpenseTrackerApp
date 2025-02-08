@@ -48,22 +48,21 @@ def save_transaction(transaction):
     """Save a new transaction to CSV file"""
     ensure_data_files()
     df = load_transactions()
-
-    # Asegurar que el tipo esté definido
-    if 'tipo' not in transaction:
-        transaction['tipo'] = 'real'
     
-    # Convertir fecha a datetime si es necesario
-    if isinstance(transaction['fecha'], str):
-        transaction['fecha'] = pd.to_datetime(transaction['fecha'])
-
-    # Crear un nuevo DataFrame con la transacción y asegurar tipos de datos
-    new_transaction_df = pd.DataFrame([transaction])
-    new_transaction_df['monto'] = pd.to_numeric(new_transaction_df['monto'])
-    new_transaction_df['fecha'] = pd.to_datetime(new_transaction_df['fecha'])
-
-    new_df = pd.concat([df, new_transaction_df], ignore_index=True)
-    new_df.to_csv(TRANSACTIONS_FILE, index=False)
+    # Crear un nuevo DataFrame con la transacción
+    new_row = pd.DataFrame([{
+        'fecha': pd.to_datetime(transaction['fecha']),
+        'monto': float(transaction['monto']),
+        'descripcion': str(transaction['descripcion']),
+        'categoria': str(transaction['categoria']),
+        'tipo': transaction.get('tipo', 'real')
+    }])
+    
+    # Concatenar con el DataFrame existente
+    df = pd.concat([df, new_row], ignore_index=True)
+    
+    # Guardar el DataFrame actualizado
+    df.to_csv(TRANSACTIONS_FILE, index=False)
     return True
 
 def load_categories():
