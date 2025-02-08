@@ -10,7 +10,8 @@ from utils.data_manager import (
     load_transactions,
     save_transaction,
     load_categories,
-    save_categories
+    save_categories,
+    TRANSACTIONS_FILE
 )
 import os
 
