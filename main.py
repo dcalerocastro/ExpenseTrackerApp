@@ -227,18 +227,23 @@ elif page == "Sincronizar Correos":
                                     descartar = st.form_submit_button("Descartar")
 
                                     if guardar:
-                                        transaction_to_save = {
-                                            'fecha': fecha,
-                                            'monto': monto,
-                                            'descripcion': descripcion,
-                                            'categoria': categoria,
-                                            'tipo': 'real'
-                                        }
-                                        save_transaction(transaction_to_save)
-                                        st.session_state.pending_transactions.pop(i)
-                                        st.session_state.transactions = load_transactions()
-                                        st.success("¡Gasto guardado exitosamente!")
-                                        st.rerun()
+                                        try:
+                                            transaction_to_save = {
+                                                'fecha': fecha,
+                                                'monto': float(monto),
+                                                'descripcion': str(descripcion),
+                                                'categoria': str(categoria),
+                                                'tipo': 'real'
+                                            }
+                                            if save_transaction(transaction_to_save):
+                                                st.session_state.pending_transactions.pop(i)
+                                                st.session_state.transactions = load_transactions()
+                                                st.success("¡Gasto guardado exitosamente!")
+                                                st.experimental_rerun()
+                                            else:
+                                                st.error("Error al guardar la transacción")
+                                        except Exception as e:
+                                            st.error(f"Error al guardar: {str(e)}")
                                     
                                     if descartar:
                                         st.session_state.pending_transactions.pop(i)
