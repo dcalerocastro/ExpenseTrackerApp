@@ -89,9 +89,39 @@ if page == "Dashboard":
         fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
         st.plotly_chart(fig_line)
 
-    # Transactions table
+    # Transactions table with edit/delete
     st.subheader("Listado de Transacciones")
-    st.dataframe(filtered_df)
+    for idx, row in filtered_df.iterrows():
+        with st.expander(f"{row['descripcion']} - S/ {row['monto']} ({row['fecha'].strftime('%Y-%m-%d')})"):
+            with st.form(f"edit_transaction_{idx}"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    new_fecha = st.date_input("Fecha", row['fecha'], key=f"date_{idx}")
+                    new_monto = st.number_input("Monto", value=float(row['monto']), key=f"amount_{idx}")
+                with col2:
+                    new_descripcion = st.text_input("Descripción", row['descripcion'], key=f"desc_{idx}")
+                    new_categoria = st.selectbox("Categoría", options=st.session_state.categories, index=st.session_state.categories.index(row['categoria']) if row['categoria'] in st.session_state.categories else 0, key=f"cat_{idx}")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.form_submit_button("Actualizar"):
+                        df = load_transactions()
+                        df.loc[idx, 'fecha'] = new_fecha
+                        df.loc[idx, 'monto'] = new_monto
+                        df.loc[idx, 'descripcion'] = new_descripcion
+                        df.loc[idx, 'categoria'] = new_categoria
+                        df.to_csv(TRANSACTIONS_FILE, index=False)
+                        st.session_state.transactions = load_transactions()
+                        st.success("¡Transacción actualizada!")
+                        st.rerun()
+                with col2:
+                    if st.form_submit_button("Eliminar", type="primary"):
+                        df = load_transactions()
+                        df = df.drop(idx)
+                        df.to_csv(TRANSACTIONS_FILE, index=False)
+                        st.session_state.transactions = load_transactions()
+                        st.success("¡Transacción eliminada!")
+                        st.rerun()
 
     # Export button
     if st.button("Exportar Datos"):
@@ -182,21 +212,23 @@ elif page == "Sincronizar Correos":
 
                         # Mostrar transacciones encontradas
                         for transaction in transactions:
-                            with st.expander(f"Transacción: {transaction['descripcion']} - {transaction['fecha'].strftime('%Y-%m-%d')}"):
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
-                                    transaction['monto'] = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
-                                with col2:
-                                    transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
-                                    transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
+                            with st.expander(f"{transaction['descripcion']} - S/ {transaction['monto']} ({transaction['fecha'].strftime('%Y-%m-%d')})"):
+                                with st.form(f"sync_transaction_{id(transaction)}"):
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
+                                        transaction['monto'] = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
+                                    with col2:
+                                        transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
+                                        transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
 
-                                transaction['tipo'] = 'real'  # Las transacciones del banco son siempre reales
+                                    transaction['tipo'] = 'real'  # Las transacciones del banco son siempre reales
 
-                                if st.button("Guardar", key=f"save_{id(transaction)}"):
-                                    save_transaction(transaction)
-                                    st.session_state.transactions = load_transactions()
-                                    st.success("Transacción guardada exitosamente!")
+                                    if st.form_submit_button("Guardar esta transacción"):
+                                        save_transaction(transaction)
+                                        st.session_state.transactions = load_transactions()
+                                        st.success("¡Transacción guardada exitosamente!")
+                                        st.rerun()
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
                         st.markdown("""

@@ -18,13 +18,18 @@ def parse_email_content(email_content):
         date_pattern = r'(\d{1,2}(?:/|-)\d{1,2}(?:/|-)\d{2,4})'
         date_match = re.search(date_pattern, email_content)
 
-        # Description pattern (línea que contiene el monto)
+        # Description pattern (extraer comercio del mensaje)
         description = None
-        for line in email_content.split('\n'):
-            if 'S/' in line:
-                description = line.strip()
-                print(f"Línea con monto encontrada: {line.strip()}")
-                break
+        merchant_pattern = r'en <b>(.*?)</b>'
+        merchant_match = re.search(merchant_pattern, email_content)
+        if merchant_match:
+            description = merchant_match.group(1)
+        else:
+            for line in email_content.split('\n'):
+                if 'S/' in line:
+                    description = line.strip()
+                    break
+        print(f"Descripción extraída: {description}")
 
         if amount_match:
             amount = amount_match.group(1)
