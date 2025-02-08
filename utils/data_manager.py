@@ -47,8 +47,12 @@ def load_transactions():
 def save_transaction(transaction):
     """Save a new transaction to CSV file"""
     try:
+        print("Iniciando guardado de transacción...")
+        print(f"Datos recibidos: {transaction}")
+        
         ensure_data_files()
         df = load_transactions()
+        print(f"DataFrame actual: {len(df)} filas")
         
         # Crear un nuevo DataFrame con la transacción
         new_row = pd.DataFrame([{
@@ -58,14 +62,23 @@ def save_transaction(transaction):
             'categoria': str(transaction['categoria']),
             'tipo': transaction.get('tipo', 'real')
         }])
+        print(f"Nueva fila creada: {new_row.to_dict('records')}")
         
         # Concatenar con el DataFrame existente
         df = pd.concat([df, new_row], ignore_index=True)
+        print(f"DataFrame después de concat: {len(df)} filas")
         
         # Guardar el DataFrame actualizado
         df.to_csv(TRANSACTIONS_FILE, index=False)
         print(f"Transacción guardada en {TRANSACTIONS_FILE}")
-        return True
+        
+        # Verificar que el archivo existe y tiene el contenido correcto
+        if os.path.exists(TRANSACTIONS_FILE):
+            print(f"Archivo verificado: {os.path.getsize(TRANSACTIONS_FILE)} bytes")
+            return True
+        else:
+            print("Error: El archivo no existe después de guardar")
+            return False
     except Exception as e:
         print(f"Error guardando transacción: {str(e)}")
         return False
