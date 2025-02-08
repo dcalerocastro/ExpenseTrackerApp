@@ -45,6 +45,7 @@ class EmailReader:
 
             # Buscar correos del BCP
             search_criteria = '(SUBJECT "Realizaste un consumo con tu Tarjeta de Crédito BCP - Servicio de Notificaciones BCP")'
+            search_criteria = search_criteria.encode('utf-8')  # Codificar el criterio de búsqueda
             result, messages = self.imap.search(None, search_criteria)
 
             if result == 'OK' and messages[0]:
@@ -65,13 +66,21 @@ class EmailReader:
                         if email_message.is_multipart():
                             for part in email_message.walk():
                                 if part.get_content_type() == "text/plain":
-                                    content = part.get_payload(decode=True).decode()
+                                    try:
+                                        content = part.get_payload(decode=True).decode('utf-8')
+                                    except UnicodeDecodeError:
+                                        content = part.get_payload(decode=True).decode('latin-1')
+
                                     transaction = parse_email_content(content)
                                     if transaction:
                                         transactions.append(transaction)
                                     break
                         else:
-                            content = email_message.get_payload(decode=True).decode()
+                            try:
+                                content = email_message.get_payload(decode=True).decode('utf-8')
+                            except UnicodeDecodeError:
+                                content = email_message.get_payload(decode=True).decode('latin-1')
+
                             transaction = parse_email_content(content)
                             if transaction:
                                 transactions.append(transaction)
