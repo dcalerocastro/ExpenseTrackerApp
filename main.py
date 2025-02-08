@@ -137,28 +137,44 @@ elif page == "Ingresar Gasto":
 elif page == "Sincronizar Correos":
     st.title("Sincronización de Notificaciones BCP")
 
-    # Verificar credenciales
-    email_user = os.getenv('EMAIL_USER')
-    email_password = os.getenv('EMAIL_PASSWORD')
+    st.info("""
+    Para sincronizar tus notificaciones del BCP, necesitas configurar tu cuenta de Gmail.
+    La aplicación solo leerá los correos de notificaciones del BCP.
+    """)
 
-    if not email_user or not email_password:
-        st.error("No se han configurado las credenciales de correo. Por favor, contacta al administrador.")
-        st.info("""
-        Para configurar el acceso a Gmail, necesitas:
-        1. Una cuenta de Gmail con verificación en dos pasos activada
-        2. Una contraseña de aplicación específica:
-           - Ve a https://myaccount.google.com/security
-           - Busca "Contraseñas de aplicación"
-           - Genera una nueva para "Streamlit App"
+    # Formulario de configuración de Gmail
+    with st.form("gmail_config"):
+        email = st.text_input("Correo Gmail", value=os.getenv('EMAIL_USER', ''))
+        password = st.text_input("Contraseña de Aplicación", type="password", help="Contraseña de 16 caracteres generada por Google")
+
+        st.markdown("""
+        ### ¿Cómo obtener la Contraseña de Aplicación?
+        1. Ve a [Configuración de Seguridad de Google](https://myaccount.google.com/security)
+        2. Activa la "Verificación en dos pasos" si no está activada
+        3. Busca "Contraseñas de aplicación" (casi al final de la página)
+        4. Selecciona "Otra" y nombra la app como "Streamlit App"
+        5. Copia la contraseña de 16 caracteres que Google te genera
         """)
-    else:
-        st.info(f"Configurado para la cuenta: {email_user}")
+
+        submit_creds = st.form_submit_button("Guardar Credenciales")
+
+        if submit_creds and email and password:
+            try:
+                os.environ['EMAIL_USER'] = email
+                os.environ['EMAIL_PASSWORD'] = password
+                st.success("¡Credenciales guardadas! Ahora puedes sincronizar tus notificaciones.")
+            except Exception as e:
+                st.error(f"Error al guardar credenciales: {str(e)}")
+
+    # Only show sync button if credentials are configured
+    if os.getenv('EMAIL_USER') and os.getenv('EMAIL_PASSWORD'):
+        st.divider()
         days_back = st.slider("Días hacia atrás para buscar", 1, 90, 30)
 
         if st.button("Sincronizar Notificaciones"):
             try:
                 with st.spinner('Conectando con el servidor de correo...'):
-                    reader = EmailReader(email_user, email_password)
+                    reader = EmailReader(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASSWORD'))
                     transactions = reader.fetch_bcp_notifications(days_back)
 
                     if transactions:
