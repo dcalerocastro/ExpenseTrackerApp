@@ -25,7 +25,7 @@ if 'transactions' not in st.session_state:
 
 # Sidebar navigation
 st.sidebar.title("Navegación")
-page = st.sidebar.radio("Ir a", ["Dashboard", "Sincronizar Correos", "Gestionar Categorías"])
+page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Correos", "Gestionar Categorías"])
 
 if page == "Dashboard":
     st.title("Dashboard de Gastos")
@@ -45,12 +45,17 @@ if page == "Dashboard":
     ]
 
     # Summary metrics
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
+    real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
+    proy_gastos = filtered_df[filtered_df['tipo'] == 'proyectado']['monto'].sum()
+
     with col1:
-        st.metric("Total Gastos", f"S/. {filtered_df['monto'].sum():.2f}")
+        st.metric("Total Gastos Reales", f"S/. {real_gastos:.2f}")
     with col2:
-        st.metric("Promedio por Transacción", f"S/. {filtered_df['monto'].mean():.2f}")
+        st.metric("Total Gastos Proyectados", f"S/. {proy_gastos:.2f}")
     with col3:
+        st.metric("Total General", f"S/. {(real_gastos + proy_gastos):.2f}")
+    with col4:
         st.metric("Número de Transacciones", len(filtered_df))
 
     # Visualizations
@@ -61,16 +66,27 @@ if page == "Dashboard":
         fig_pie = px.pie(filtered_df, 
                         values='monto', 
                         names='categoria',
-                        title='Distribución de Gastos por Categoría')
+                        title='Distribución de Gastos por Categoría',
+                        color='tipo')  # Diferenciar por tipo
         st.plotly_chart(fig_pie)
 
     with col2:
         # Time series of expenses
-        daily_expenses = filtered_df.groupby('fecha')['monto'].sum().reset_index()
-        fig_line = px.line(daily_expenses, 
-                          x='fecha', 
-                          y='monto',
-                          title='Gastos Diarios')
+        fig_line = go.Figure()
+
+        # Gastos reales
+        real_daily = filtered_df[filtered_df['tipo'] == 'real'].groupby('fecha')['monto'].sum().reset_index()
+        fig_line.add_trace(go.Scatter(x=real_daily['fecha'], y=real_daily['monto'],
+                                    name='Gastos Reales',
+                                    line=dict(color='blue')))
+
+        # Gastos proyectados
+        proy_daily = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('fecha')['monto'].sum().reset_index()
+        fig_line.add_trace(go.Scatter(x=proy_daily['fecha'], y=proy_daily['monto'],
+                                    name='Gastos Proyectados',
+                                    line=dict(color='red', dash='dash')))
+
+        fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
         st.plotly_chart(fig_line)
 
     # Transactions table
@@ -86,6 +102,37 @@ if page == "Dashboard":
             file_name="transacciones.csv",
             mime="text/csv"
         )
+
+elif page == "Ingresar Gasto":
+    st.title("Ingresar Nuevo Gasto")
+
+    # Formulario para nuevo gasto
+    with st.form("nuevo_gasto"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            fecha = st.date_input("Fecha")
+            monto = st.number_input("Monto (S/.)", min_value=0.0, step=0.1)
+
+        with col2:
+            descripcion = st.text_input("Descripción")
+            categoria = st.selectbox("Categoría", options=st.session_state.categories)
+
+        tipo = st.radio("Tipo de Gasto", ['real', 'proyectado'])
+
+        submitted = st.form_submit_button("Guardar Gasto")
+
+        if submitted:
+            transaction = {
+                'fecha': fecha,
+                'monto': monto,
+                'descripcion': descripcion,
+                'categoria': categoria,
+                'tipo': tipo
+            }
+            save_transaction(transaction)
+            st.session_state.transactions = load_transactions()
+            st.success("¡Gasto guardado exitosamente!")
 
 elif page == "Sincronizar Correos":
     st.title("Sincronización de Notificaciones BCP")
@@ -127,6 +174,8 @@ elif page == "Sincronizar Correos":
                                 with col2:
                                     transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
                                     transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
+
+                                transaction['tipo'] = 'real'  # Las transacciones del banco son siempre reales
 
                                 if st.button("Guardar", key=f"save_{id(transaction)}"):
                                     save_transaction(transaction)

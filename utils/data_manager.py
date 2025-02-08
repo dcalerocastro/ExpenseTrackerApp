@@ -8,10 +8,16 @@ CATEGORIES_FILE = "data/categories.csv"
 def ensure_data_files():
     """Ensure data files exist with correct structure"""
     os.makedirs("data", exist_ok=True)
-    
+
     if not os.path.exists(TRANSACTIONS_FILE):
-        pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria']).to_csv(TRANSACTIONS_FILE, index=False)
-    
+        pd.DataFrame(columns=[
+            'fecha',
+            'monto',
+            'descripcion',
+            'categoria',
+            'tipo'  # 'real' o 'proyectado'
+        ]).to_csv(TRANSACTIONS_FILE, index=False)
+
     if not os.path.exists(CATEGORIES_FILE):
         default_categories = [
             "Gastos Corrientes",
@@ -30,12 +36,23 @@ def load_transactions():
     ensure_data_files()
     df = pd.read_csv(TRANSACTIONS_FILE)
     df['fecha'] = pd.to_datetime(df['fecha'])
+
+    # Asegurar que exista la columna 'tipo'
+    if 'tipo' not in df.columns:
+        df['tipo'] = 'real'
+        df.to_csv(TRANSACTIONS_FILE, index=False)
+
     return df
 
 def save_transaction(transaction):
     """Save a new transaction to CSV file"""
     ensure_data_files()
     df = load_transactions()
+
+    # Asegurar que el tipo esté definido
+    if 'tipo' not in transaction:
+        transaction['tipo'] = 'real'
+
     new_df = pd.concat([df, pd.DataFrame([transaction])], ignore_index=True)
     new_df.to_csv(TRANSACTIONS_FILE, index=False)
 
