@@ -225,12 +225,15 @@ elif page == "Sincronizar Correos":
 
                                     transaction['tipo'] = 'real'  # Las transacciones del banco son siempre reales
 
-                                    submitted = st.form_submit_button("Guardar esta transacción")
-                                    if submitted:
+                                    if st.form_submit_button("Guardar esta transacción"):
+                                        # Guardar la transacción
                                         save_transaction(transaction)
+                                        # Recargar las transacciones
                                         st.session_state.transactions = load_transactions()
+                                        # Mostrar mensaje de éxito
                                         st.success("¡Transacción guardada exitosamente!")
-                                        st.experimental_rerun()
+                                        # Forzar recarga completa
+                                        st.rerun()
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
                         st.markdown("""
