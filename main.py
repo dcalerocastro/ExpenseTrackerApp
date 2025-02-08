@@ -102,7 +102,7 @@ if page == "Dashboard":
                 with col2:
                     new_descripcion = st.text_input("Descripción", row['descripcion'], key=f"desc_{idx}")
                     new_categoria = st.selectbox("Categoría", options=st.session_state.categories, index=st.session_state.categories.index(row['categoria']) if row['categoria'] in st.session_state.categories else 0, key=f"cat_{idx}")
-                
+
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.form_submit_button("Actualizar"):
@@ -243,7 +243,7 @@ elif page == "Sincronizar Correos":
                                     if st.button("❌ Descartar", key=f"discard_{id(transaction)}"):
                                         st.info("Transacción descartada")
                                         st.rerun()
-                        
+
                         # Actualizar las transacciones pendientes
                         st.session_state.pending_transactions = remaining_transactions
                     else:
