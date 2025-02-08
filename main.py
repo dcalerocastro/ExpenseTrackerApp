@@ -211,39 +211,39 @@ elif page == "Sincronizar Correos":
                         # Mostrar transacciones pendientes
                         if st.session_state.pending_transactions:
                             for i, transaction in enumerate(st.session_state.pending_transactions):
-                                with st.expander(f"{transaction['descripcion']} - S/ {transaction['monto']} ({transaction['fecha'].strftime('%Y-%m-%d')})", expanded=True):
+                                with st.form(f"transaction_form_{i}"):
+                                    st.subheader(f"Transacción de correo: {transaction['descripcion']}")
+                                    
                                     col1, col2 = st.columns(2)
                                     with col1:
-                                        fecha = st.date_input("Fecha", transaction['fecha'], key=f"date_{i}")
-                                        monto = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{i}")
+                                        fecha = st.date_input("Fecha", transaction['fecha'])
+                                        monto = st.number_input("Monto (S/.)", value=float(transaction['monto']), min_value=0.0, step=0.1)
                                     with col2:
-                                        descripcion = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{i}")
-                                        categoria = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{i}")
+                                        descripcion = st.text_input("Descripción", transaction['descripcion'])
+                                        categoria = st.selectbox("Categoría", options=st.session_state.categories)
 
                                     col1, col2 = st.columns(2)
-                                    with col1:
-                                        if st.button("✅ Guardar", key=f"save_{i}"):
-                                            try:
-                                                transaction_to_save = {
-                                                    'fecha': fecha,
-                                                    'monto': float(monto),
-                                                    'descripcion': str(descripcion),
-                                                    'categoria': str(categoria),
-                                                    'tipo': 'real'
-                                                }
-                                                save_transaction(transaction_to_save)
-                                                st.session_state.pending_transactions.pop(i)
-                                                st.session_state.transactions = load_transactions()
-                                                st.success("¡Transacción guardada correctamente!")
-                                                st.rerun()
-                                            except Exception as e:
-                                                st.error(f"Error al guardar: {str(e)}")
-                                                print(f"Error detallado: {str(e)}")
-                                    with col2:
-                                        if st.button("❌ Descartar", key=f"discard_{i}"):
-                                            st.session_state.pending_transactions.pop(i)
-                                            st.info("Transacción descartada")
-                                            st.rerun()
+                                    guardar = st.form_submit_button("Guardar Gasto")
+                                    descartar = st.form_submit_button("Descartar")
+
+                                    if guardar:
+                                        transaction_to_save = {
+                                            'fecha': fecha,
+                                            'monto': monto,
+                                            'descripcion': descripcion,
+                                            'categoria': categoria,
+                                            'tipo': 'real'
+                                        }
+                                        save_transaction(transaction_to_save)
+                                        st.session_state.pending_transactions.pop(i)
+                                        st.session_state.transactions = load_transactions()
+                                        st.success("¡Gasto guardado exitosamente!")
+                                        st.rerun()
+                                    
+                                    if descartar:
+                                        st.session_state.pending_transactions.pop(i)
+                                        st.info("Transacción descartada")
+                                        st.rerun()
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
                         st.markdown("""
