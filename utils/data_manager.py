@@ -46,24 +46,29 @@ def load_transactions():
 
 def save_transaction(transaction):
     """Save a new transaction to CSV file"""
-    ensure_data_files()
-    df = load_transactions()
-    
-    # Crear un nuevo DataFrame con la transacción
-    new_row = pd.DataFrame([{
-        'fecha': pd.to_datetime(transaction['fecha']),
-        'monto': float(transaction['monto']),
-        'descripcion': str(transaction['descripcion']),
-        'categoria': str(transaction['categoria']),
-        'tipo': transaction.get('tipo', 'real')
-    }])
-    
-    # Concatenar con el DataFrame existente
-    df = pd.concat([df, new_row], ignore_index=True)
-    
-    # Guardar el DataFrame actualizado
-    df.to_csv(TRANSACTIONS_FILE, index=False)
-    return True
+    try:
+        ensure_data_files()
+        df = load_transactions()
+        
+        # Crear un nuevo DataFrame con la transacción
+        new_row = pd.DataFrame([{
+            'fecha': pd.to_datetime(transaction['fecha']),
+            'monto': float(transaction['monto']),
+            'descripcion': str(transaction['descripcion']),
+            'categoria': str(transaction['categoria']),
+            'tipo': transaction.get('tipo', 'real')
+        }])
+        
+        # Concatenar con el DataFrame existente
+        df = pd.concat([df, new_row], ignore_index=True)
+        
+        # Guardar el DataFrame actualizado
+        df.to_csv(TRANSACTIONS_FILE, index=False)
+        print(f"Transacción guardada en {TRANSACTIONS_FILE}")
+        return True
+    except Exception as e:
+        print(f"Error guardando transacción: {str(e)}")
+        return False
 
 def load_categories():
     """Load categories from CSV file"""

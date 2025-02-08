@@ -235,14 +235,20 @@ elif page == "Sincronizar Correos":
                                                 'categoria': str(categoria),
                                                 'tipo': 'real'
                                             }
-                                            if save_transaction(transaction_to_save):
+                                            print(f"Guardando transacción: {transaction_to_save}")
+                                            result = save_transaction(transaction_to_save)
+                                            print(f"Resultado del guardado: {result}")
+                                            
+                                            if result:
                                                 st.session_state.pending_transactions.pop(i)
                                                 st.session_state.transactions = load_transactions()
                                                 st.success("¡Gasto guardado exitosamente!")
-                                                st.experimental_rerun()
+                                                print("Transacción guardada, recargando...")
+                                                st.rerun()
                                             else:
                                                 st.error("Error al guardar la transacción")
                                         except Exception as e:
+                                            print(f"Error al guardar: {str(e)}")
                                             st.error(f"Error al guardar: {str(e)}")
                                     
                                     if descartar:
