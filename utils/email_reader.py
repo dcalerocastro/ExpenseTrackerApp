@@ -43,10 +43,9 @@ class EmailReader:
 
             self.imap.select('INBOX')
 
-            # Buscar correos del BCP
-            search_criteria = '(SUBJECT "Realizaste un consumo con tu Tarjeta de Crédito BCP - Servicio de Notificaciones BCP")'
-            search_criteria = search_criteria.encode('utf-8')  # Codificar el criterio de búsqueda
-            result, messages = self.imap.search(None, search_criteria)
+            # Buscar correos del BCP usando formato correcto de IMAP
+            search_query = 'SUBJECT "Realizaste un consumo con tu Tarjeta de Credito BCP - Servicio de Notificaciones BCP"'
+            result, messages = self.imap.search(None, search_query)
 
             if result == 'OK' and messages[0]:
                 message_nums = messages[0].split()
