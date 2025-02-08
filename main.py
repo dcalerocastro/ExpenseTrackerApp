@@ -96,34 +96,51 @@ elif page == "Sincronizar Correos":
 
     if not email_user or not email_password:
         st.error("No se han configurado las credenciales de correo. Por favor, contacta al administrador.")
+        st.info("""
+        Para configurar el acceso a Gmail, necesitas:
+        1. Una cuenta de Gmail con verificación en dos pasos activada
+        2. Una contraseña de aplicación específica:
+           - Ve a https://myaccount.google.com/security
+           - Busca "Contraseñas de aplicación"
+           - Genera una nueva para "Streamlit App"
+        """)
     else:
+        st.info(f"Configurado para la cuenta: {email_user}")
         days_back = st.slider("Días hacia atrás para buscar", 1, 90, 30)
 
         if st.button("Sincronizar Notificaciones"):
-            with st.spinner('Conectando con el servidor de correo...'):
-                reader = EmailReader(email_user, email_password)
-                transactions = reader.fetch_bcp_notifications(days_back)
+            try:
+                with st.spinner('Conectando con el servidor de correo...'):
+                    reader = EmailReader(email_user, email_password)
+                    transactions = reader.fetch_bcp_notifications(days_back)
 
-                if transactions:
-                    st.success(f"Se encontraron {len(transactions)} notificaciones")
+                    if transactions:
+                        st.success(f"Se encontraron {len(transactions)} notificaciones")
 
-                    # Mostrar transacciones encontradas
-                    for transaction in transactions:
-                        with st.expander(f"Transacción: {transaction['descripcion']} - {transaction['fecha'].strftime('%Y-%m-%d')}"):
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
-                                transaction['monto'] = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
-                            with col2:
-                                transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
-                                transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
+                        # Mostrar transacciones encontradas
+                        for transaction in transactions:
+                            with st.expander(f"Transacción: {transaction['descripcion']} - {transaction['fecha'].strftime('%Y-%m-%d')}"):
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
+                                    transaction['monto'] = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
+                                with col2:
+                                    transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
+                                    transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
 
-                            if st.button("Guardar", key=f"save_{id(transaction)}"):
-                                save_transaction(transaction)
-                                st.session_state.transactions = load_transactions()
-                                st.success("Transacción guardada exitosamente!")
-                else:
-                    st.info("No se encontraron nuevas notificaciones en el período seleccionado")
+                                if st.button("Guardar", key=f"save_{id(transaction)}"):
+                                    save_transaction(transaction)
+                                    st.session_state.transactions = load_transactions()
+                                    st.success("Transacción guardada exitosamente!")
+                    else:
+                        st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
+                        st.markdown("""
+                        1. Tu cuenta tenga correos del BCP con el asunto exacto
+                        2. Los correos estén dentro del período seleccionado
+                        3. La contraseña de aplicación sea correcta
+                        """)
+            except Exception as e:
+                st.error(f"Error al sincronizar: {str(e)}")
 
 elif page == "Gestionar Categorías":
     st.title("Gestionar Categorías")
