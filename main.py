@@ -93,7 +93,22 @@ if page == "Dashboard":
     # Transactions table with edit/delete
     st.subheader("Listado de Transacciones")
     for idx, row in filtered_df.iterrows():
-        with st.expander(f"{row['descripcion']} - S/ {row['monto']} ({row['fecha'].strftime('%Y-%m-%d')})"):
+        # Verificar si es la última transacción guardada
+        is_last_saved = False
+        if hasattr(st.session_state, 'last_saved_transaction'):
+            last_saved = st.session_state.last_saved_transaction
+            is_last_saved = (
+                pd.Timestamp(row['fecha']).date() == pd.Timestamp(last_saved['fecha']).date() and
+                float(row['monto']) == float(last_saved['monto']) and
+                str(row['descripcion']) == str(last_saved['descripcion'])
+            )
+        
+        expander_label = f"{row['descripcion']} - S/ {row['monto']} ({row['fecha'].strftime('%Y-%m-%d')})"
+        if is_last_saved:
+            expander_label = "🆕 " + expander_label
+            st.success(f"Transacción guardada: {expander_label}")
+            
+        with st.expander(expander_label):
             with st.form(f"edit_transaction_{idx}"):
                 col1, col2 = st.columns(2)
                 with col1:
@@ -242,6 +257,7 @@ elif page == "Sincronizar Correos":
                                             if result:
                                                 st.session_state.pending_transactions.pop(i)
                                                 st.session_state.transactions = load_transactions()
+                                                st.session_state.last_saved_transaction = transaction_to_save
                                                 st.success("¡Gasto guardado exitosamente!")
                                                 print("Transacción guardada, recargando...")
                                                 st.rerun()
