@@ -185,9 +185,8 @@ elif page == "Sincronizar Correos":
            - EMAIL_USER: Tu dirección de Gmail
            - EMAIL_PASSWORD: Tu contraseña de aplicación de Google
         """)
-        return
-    
-    st.success("Credenciales configuradas correctamente")
+    else:
+        st.success("Credenciales configuradas correctamente")
 
     # Only show sync button if credentials are configured
     if os.getenv('EMAIL_USER') and os.getenv('EMAIL_PASSWORD'):
