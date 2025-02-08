@@ -46,8 +46,8 @@ class EmailReader:
             self.imap.select('INBOX')
             print("Bandeja INBOX seleccionada")
 
-            # Buscar correos del BCP usando criterios más flexibles
-            search_query = 'SUBJECT "BCP" SUBJECT "consumo"'
+            # Buscar correos del BCP por remitente
+            search_query = 'FROM "notificaciones@notificacionesbcp.com.pe"'
             print(f"Ejecutando búsqueda con query: {search_query}")
             result, messages = self.imap.search(None, search_query)
             print(f"Resultado de búsqueda: {result}")
