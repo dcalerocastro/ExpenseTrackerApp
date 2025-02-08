@@ -52,9 +52,19 @@ def save_transaction(transaction):
     # Asegurar que el tipo esté definido
     if 'tipo' not in transaction:
         transaction['tipo'] = 'real'
+    
+    # Convertir fecha a datetime si es necesario
+    if isinstance(transaction['fecha'], str):
+        transaction['fecha'] = pd.to_datetime(transaction['fecha'])
 
-    new_df = pd.concat([df, pd.DataFrame([transaction])], ignore_index=True)
+    # Crear un nuevo DataFrame con la transacción y asegurar tipos de datos
+    new_transaction_df = pd.DataFrame([transaction])
+    new_transaction_df['monto'] = pd.to_numeric(new_transaction_df['monto'])
+    new_transaction_df['fecha'] = pd.to_datetime(new_transaction_df['fecha'])
+
+    new_df = pd.concat([df, new_transaction_df], ignore_index=True)
     new_df.to_csv(TRANSACTIONS_FILE, index=False)
+    return True
 
 def load_categories():
     """Load categories from CSV file"""

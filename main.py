@@ -232,10 +232,13 @@ elif page == "Sincronizar Correos":
                                 col1, col2 = st.columns(2)
                                 with col1:
                                     if st.button("✅ Guardar", key=f"save_{id(transaction)}"):
-                                        save_transaction(transaction)
-                                        st.session_state.transactions = load_transactions()
-                                        st.success("¡Transacción guardada!")
-                                        st.rerun()
+                                        if save_transaction(transaction):
+                                            st.session_state.transactions = load_transactions()
+                                            remaining_transactions.remove(transaction)
+                                            st.success("¡Transacción guardada!")
+                                            st.rerun()
+                                        else:
+                                            st.error("Error al guardar la transacción")
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{id(transaction)}"):
                                         st.info("Transacción descartada")
