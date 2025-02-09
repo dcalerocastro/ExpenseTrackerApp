@@ -96,8 +96,13 @@ class EmailReader:
 
                             transaction = parse_email_content(content)
                             if transaction:
-                                transactions.append(transaction)
-                                print(f"Transacción encontrada: {transaction}")
+                                # Asegurarse de que la transacción tiene todos los campos necesarios
+                                transaction['tipo'] = 'real'  # Marcar como transacción real
+                                if all(key in transaction for key in ['fecha', 'monto', 'descripcion', 'categoria']):
+                                    transactions.append(transaction)
+                                    print(f"Transacción encontrada y validada: {transaction}")
+                                else:
+                                    print(f"Transacción incompleta, falta algún campo requerido: {transaction}")
 
                     except Exception as e:
                         print(f"Error procesando correo individual: {str(e)}")

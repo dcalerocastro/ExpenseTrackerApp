@@ -46,13 +46,16 @@ def parse_email_content(email_content):
             else:
                 date = datetime.now()
 
-            return {
+            transaction = {
                 'fecha': date,
-                'monto': amount,
-                'descripcion': description,
+                'monto': float(amount),  # Asegurar que es float
+                'descripcion': description.strip(),  # Limpiar espacios
                 'categoria': 'Sin Categorizar',
-                'moneda': currency
+                'moneda': currency,
+                'tipo': 'real'
             }
+            print(f"Transacción parseada: {transaction}")
+            return transaction
         else:
             print("No se encontró ningún monto en el formato esperado")
             print(f"Contenido del correo: {email_content[:200]}...")
