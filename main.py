@@ -188,47 +188,56 @@ elif page == "Sincronizar Correos":
 
                     if transactions:
                         st.success(f"Se encontraron {len(transactions)} notificaciones")
-                        
-                        for transaction in transactions:
+
+                        for idx, transaction in enumerate(transactions):
                             with st.expander(f"Transacción: {transaction['descripcion']} - S/. {transaction['monto']:.2f}", expanded=True):
                                 col1, col2 = st.columns([3, 1])
-                                
+
                                 with col1:
                                     st.write(f"📅 Fecha: {transaction['fecha'].strftime('%d/%m/%Y')}")
                                     st.write(f"💰 Monto: S/. {transaction['monto']:.2f}")
                                     st.write(f"📝 Descripción: {transaction['descripcion']}")
-                                    categoria = st.selectbox(
+
+                                    # Agregar categoría a la transacción
+                                    transaction['categoria'] = st.selectbox(
                                         "🏷️ Categoría",
                                         options=st.session_state.categories,
-                                        key=f"cat_{transaction['descripcion']}"
+                                        key=f"cat_{idx}"
                                     )
-                                
+
                                 with col2:
-                                    if st.button("✅ Guardar", key=f"save_{transaction['descripcion']}"):
+                                    if st.button("💾 Guardar", key=f"save_{idx}"):
+                                        print(f"\n=== GUARDANDO TRANSACCIÓN {idx} ===")
+                                        print(f"Datos originales: {transaction}")
+
                                         try:
+                                            # Crear diccionario de guardado
                                             save_data = {
                                                 'fecha': transaction['fecha'],
                                                 'monto': float(transaction['monto']),
                                                 'descripcion': transaction['descripcion'],
-                                                'categoria': categoria,
+                                                'categoria': transaction['categoria'],
                                                 'tipo': 'real'
                                             }
-                                            
+                                            print(f"Datos a guardar: {save_data}")
+
+                                            # Intentar guardar
                                             if save_transaction(save_data):
                                                 st.session_state.transactions = load_transactions()
-                                                st.success("✅ Guardado")
-                                                st.balloons()
+                                                st.success(f"¡Transacción guardada!")
+                                                st.rerun()
                                             else:
-                                                st.error("❌ Error al guardar")
-                                        except Exception as e:
-                                            st.error(f"Error: {str(e)}")
-                                    
-                                    if st.button("❌ Descartar", key=f"discard_{transaction['descripcion']}"):
-                                        st.info("Descartado")
-                                        st.rerun()
+                                                st.error("Error al guardar la transacción")
 
+                                        except Exception as e:
+                                            print(f"Error guardando transacción {idx}: {str(e)}")
+                                            st.error(f"Error: {str(e)}")
+
+                                    if st.button("❌ Descartar", key=f"discard_{idx}"):
+                                        st.info("Transacción descartada")
+                                        st.rerun()
                     else:
-                        st.warning("No se encontraron notificaciones en el período seleccionado.")
+                        st.warning("No se encontraron notificaciones en el período seleccionado")
 
             except Exception as e:
                 st.error(f"Error al sincronizar: {str(e)}")
