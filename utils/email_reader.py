@@ -1,7 +1,7 @@
 import imaplib
 import email
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from email import policy
 from .email_parser import parse_email_content
 
@@ -46,8 +46,12 @@ class EmailReader:
             self.imap.select('INBOX')
             print("Bandeja INBOX seleccionada")
 
-            # Buscar correos del BCP por remitente
-            search_query = 'FROM "notificaciones@notificacionesbcp.com.pe"'
+            # Calcular la fecha límite
+            since_date = (datetime.now() - timedelta(days=days_back)).strftime("%d-%b-%Y")
+            print(f"Buscando correos desde: {since_date}")
+
+            # Buscar correos del BCP por remitente y fecha
+            search_query = f'FROM "notificaciones@notificacionesbcp.com.pe" SINCE "{since_date}"'
             print(f"Ejecutando búsqueda con query: {search_query}")
             result, messages = self.imap.search(None, search_query)
             print(f"Resultado de búsqueda: {result}")
