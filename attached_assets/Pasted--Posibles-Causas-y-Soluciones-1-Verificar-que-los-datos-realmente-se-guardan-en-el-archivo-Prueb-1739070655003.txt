@@ -1,0 +1,60 @@
+🔍 Posibles Causas y Soluciones
+1️⃣ Verificar que los datos realmente se guardan en el archivo
+Prueba agregando este código después de new_df.to_csv(TRANSACTIONS_FILE, index=False) en save_transaction:
+
+python
+Copiar
+Editar
+print(f"Verificando contenido de {TRANSACTIONS_FILE} después de guardar:")
+df_check = pd.read_csv(TRANSACTIONS_FILE)
+print(df_check.to_string())
+Esto imprimirá el contenido actual del archivo CSV después de guardar una transacción.
+
+2️⃣ Comprobar si save_transaction se ejecuta correctamente
+Antes de return True en save_transaction, agrega un print(transaction) para verificar que los datos están bien antes de guardarlos:
+
+python
+Copiar
+Editar
+print("Intentando guardar la transacción:", transaction)
+Si el print no aparece en la consola, entonces save_transaction no se está ejecutando.
+
+3️⃣ Asegurarse de que los datos se recargan en st.session_state.transactions
+Después de llamar a save_transaction(transaction) en main.py, la sesión se actualiza con:
+
+python
+Copiar
+Editar
+st.session_state.transactions = load_transactions()
+Prueba agregando un print(st.session_state.transactions.to_string()) después de esta línea para ver si realmente carga los datos.
+
+4️⃣ Revisar posibles problemas con los datos
+Si hay errores en los datos guardados, load_transactions() podría fallar silenciosamente. En este caso, modifica load_transactions() para agregar print:
+
+python
+Copiar
+Editar
+def load_transactions():
+    """Load transactions from CSV file"""
+    ensure_data_files()
+    try:
+        df = pd.read_csv(TRANSACTIONS_FILE)
+        print(f"Transacciones cargadas desde {TRANSACTIONS_FILE}:")
+        print(df.to_string())  # Verificar contenido
+        if len(df) > 0:
+            df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce')
+        return df
+    except Exception as e:
+        print(f"Error cargando transacciones: {str(e)}")
+        return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
+Si fecha no está bien formateada, pd.to_datetime() podría estar fallando silenciosamente y dejando el DataFrame vacío.
+
+5️⃣ Verificar permisos de escritura
+Si transactions.csv no se puede modificar, entonces no se guardarán nuevas transacciones. Prueba corriendo:
+
+python
+Copiar
+Editar
+import os
+print(f"Permisos del archivo: {os.access(TRANSACTIONS_FILE, os.W_OK)}")
+Si devuelve False, el script no tiene permisos de escritura sobre el archivo.
