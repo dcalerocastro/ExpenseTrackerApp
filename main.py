@@ -245,16 +245,18 @@ elif page == "Sincronizar Correos":
                                             print("Datos validados para guardar:", save_data)
 
                                             # Intentar guardar la transacción
-                                            if save_transaction(save_data):
+                                            save_success = save_transaction(save_data)
+                                            if save_success:
                                                 print("Guardado exitoso, actualizando estado...")
                                                 # Actualizar las transacciones en memoria
                                                 st.session_state.transactions = load_transactions()
                                                 # Remover la transacción guardada de pendientes
                                                 st.session_state.pending_transactions.pop(idx)
                                                 st.success("¡Transacción guardada!")
-                                                st.rerun()
+                                                st.experimental_rerun()
                                             else:
-                                                raise Exception("Error en save_transaction")
+                                                st.error("Error al guardar la transacción")
+                                                print("Error: save_transaction retornó False")
 
                                         except Exception as e:
                                             print(f"Error en el proceso de guardado: {str(e)}")
