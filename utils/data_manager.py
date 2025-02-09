@@ -36,12 +36,6 @@ def load_transactions():
     ensure_data_files()
     df = pd.read_csv(TRANSACTIONS_FILE)
     df['fecha'] = pd.to_datetime(df['fecha'])
-
-    # Asegurar que exista la columna 'tipo'
-    if 'tipo' not in df.columns:
-        df['tipo'] = 'real'
-        df.to_csv(TRANSACTIONS_FILE, index=False)
-
     return df
 
 def save_transaction(transaction):
@@ -53,8 +47,18 @@ def save_transaction(transaction):
     if 'tipo' not in transaction:
         transaction['tipo'] = 'real'
 
-    new_df = pd.concat([df, pd.DataFrame([transaction])], ignore_index=True)
+    # Convertir fecha a datetime si es necesario
+    if isinstance(transaction['fecha'], str):
+        transaction['fecha'] = pd.to_datetime(transaction['fecha'])
+
+    # Crear un nuevo DataFrame con la transacción y concatenar
+    transaction_df = pd.DataFrame([transaction])
+    new_df = pd.concat([df, transaction_df], ignore_index=True)
+
+    # Guardar el archivo
     new_df.to_csv(TRANSACTIONS_FILE, index=False)
+    print(f"Transacción guardada: {transaction}")
+    return True
 
 def load_categories():
     """Load categories from CSV file"""

@@ -180,30 +180,40 @@ elif page == "Sincronizar Correos":
                     if transactions:
                         st.success(f"Se encontraron {len(transactions)} notificaciones")
 
+                        # Guardar transacciones en session_state si no existen
+                        if 'pending_transactions' not in st.session_state:
+                            st.session_state.pending_transactions = transactions
+
                         # Mostrar transacciones encontradas
-                        for transaction in transactions:
+                        for idx, transaction in enumerate(st.session_state.pending_transactions):
                             with st.expander(f"Transacción: {transaction['descripcion']} - {transaction['fecha'].strftime('%Y-%m-%d')}"):
                                 col1, col2 = st.columns(2)
                                 with col1:
-                                    transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
+                                    transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{idx}")
                                     transaction['monto'] = st.number_input(
                                         f"Monto ({transaction.get('moneda', 'PEN')})", 
                                         value=float(transaction['monto']), 
-                                        key=f"amount_{id(transaction)}"
+                                        key=f"amount_{idx}"
                                     )
                                 with col2:
-                                    transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
-                                    transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
+                                    transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{idx}")
+                                    transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{idx}")
 
                                 # Botones de acción en una misma línea
                                 col1, col2, col3 = st.columns([1,1,2])
                                 with col1:
-                                    if st.button("💾 Guardar", key=f"save_{id(transaction)}"):
-                                        save_transaction(transaction)
-                                        st.session_state.transactions = load_transactions()
-                                        st.success("¡Transacción guardada!")
+                                    if st.button("💾 Guardar", key=f"save_{idx}"):
+                                        transaction['tipo'] = 'real'  # Asegurar que sea real
+                                        if save_transaction(transaction):
+                                            st.session_state.transactions = load_transactions()
+                                            # Remover la transacción guardada de las pendientes
+                                            st.session_state.pending_transactions.pop(idx)
+                                            st.success("¡Transacción guardada!")
+                                            st.experimental_rerun()
                                 with col2:
-                                    if st.button("❌ Descartar", key=f"discard_{id(transaction)}"):
+                                    if st.button("❌ Descartar", key=f"discard_{idx}"):
+                                        # Remover la transacción descartada
+                                        st.session_state.pending_transactions.pop(idx)
                                         st.info("Transacción descartada")
                                         st.experimental_rerun()
 
