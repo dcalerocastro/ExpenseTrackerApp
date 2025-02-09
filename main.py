@@ -204,18 +204,17 @@ elif page == "Sincronizar Correos":
                                 with col1:
                                     if st.button("💾 Guardar", key=f"save_{idx}"):
                                         transaction['tipo'] = 'real'  # Asegurar que sea real
-                                        if save_transaction(transaction):
+                                        save_success = save_transaction(transaction)
+                                        if save_success:
                                             st.session_state.transactions = load_transactions()
                                             # Remover la transacción guardada de las pendientes
                                             st.session_state.pending_transactions.pop(idx)
                                             st.success("¡Transacción guardada!")
-                                            st.experimental_rerun()
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{idx}"):
                                         # Remover la transacción descartada
                                         st.session_state.pending_transactions.pop(idx)
                                         st.info("Transacción descartada")
-                                        st.experimental_rerun()
 
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
