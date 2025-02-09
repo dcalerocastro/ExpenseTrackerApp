@@ -48,7 +48,7 @@ class EmailReader:
 
             # Buscar correos del BCP por remitente y fecha
             from_date = (datetime.now() - timedelta(days=days_back)).strftime("%d-%b-%Y")
-            search_query = f'FROM "notificaciones@notificacionesbcp.com.pe" SINCE "{from_date}"'
+            search_query = f'(FROM "notificaciones@notificacionesbcp.com.pe" SINCE "{from_date}")'
             print(f"Ejecutando búsqueda con query: {search_query}")
             result, messages = self.imap.search(None, search_query)
             print(f"Resultado de búsqueda: {result}")
@@ -72,33 +72,51 @@ class EmailReader:
                         print(f"Procesando correo con asunto: {email_message['subject']}")
 
                         # Extraer el contenido del correo
+                        content = None
                         if email_message.is_multipart():
                             for part in email_message.walk():
-                                if part.get_content_type() == "text/plain":
+                                if part.get_content_type() == "text/plain" or part.get_content_type() == "text/html":
                                     try:
                                         content = part.get_payload(decode=True).decode('utf-8')
                                     except UnicodeDecodeError:
-                                        content = part.get_payload(decode=True).decode('latin-1')
+                                        try:
+                                            content = part.get_payload(decode=True).decode('latin-1')
+                                        except:
+                                            print(f"Error decodificando contenido del correo {num}")
+                                            continue
 
-                                    transaction = parse_email_content(content)
-                                    if transaction:
-                                        transactions.append(transaction)
-                                        print(f"Transacción encontrada: {transaction}")
-                                    break
+                                    if content:
+                                        print(f"Contenido extraído del correo {num} (primeros 200 caracteres):")
+                                        print(content[:200])
+                                        transaction = parse_email_content(content)
+                                        if transaction:
+                                            transactions.append(transaction)
+                                            print(f"Transacción encontrada: {transaction}")
+                                        break
                         else:
                             try:
                                 content = email_message.get_payload(decode=True).decode('utf-8')
                             except UnicodeDecodeError:
-                                content = email_message.get_payload(decode=True).decode('latin-1')
+                                try:
+                                    content = email_message.get_payload(decode=True).decode('latin-1')
+                                except:
+                                    print(f"Error decodificando contenido del correo {num}")
+                                    continue
 
-                            transaction = parse_email_content(content)
-                            if transaction:
-                                transactions.append(transaction)
-                                print(f"Transacción encontrada: {transaction}")
+                            if content:
+                                print(f"Contenido extraído del correo {num} (primeros 200 caracteres):")
+                                print(content[:200])
+                                transaction = parse_email_content(content)
+                                if transaction:
+                                    transactions.append(transaction)
+                                    print(f"Transacción encontrada: {transaction}")
 
                     except Exception as e:
                         print(f"Error procesando correo individual: {str(e)}")
                         continue
+
+            if not transactions:
+                print("No se encontraron transacciones en los correos procesados")
 
             return transactions
 
