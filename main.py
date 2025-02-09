@@ -212,11 +212,12 @@ elif page == "Sincronizar Correos":
                                 col1, col2, col3 = st.columns([1,1,2])
                                 with col1:
                                     if st.button("💾 Guardar", key=f"save_{idx}"):
-                                        print("\n--- Iniciando proceso de guardado ---")
-                                        print("Transacción original:", transaction)
+                                        print("\n--- BOTÓN GUARDAR PRESIONADO ---")
+                                        print(f"Índice de transacción: {idx}")
 
                                         try:
                                             # Validar y formatear los datos antes de guardar
+                                            print("Iniciando validación de datos...")
                                             fecha = pd.to_datetime(transaction['fecha'])
                                             if not isinstance(fecha, (datetime, pd.Timestamp)):
                                                 raise ValueError(f"Fecha inválida: {fecha}")
@@ -245,7 +246,10 @@ elif page == "Sincronizar Correos":
                                             print("Datos validados para guardar:", save_data)
 
                                             # Intentar guardar la transacción
+                                            print("Intentando guardar transacción...")
                                             save_success = save_transaction(save_data)
+                                            print("Resultado del guardado:", save_success)
+
                                             if save_success:
                                                 print("Guardado exitoso, actualizando estado...")
                                                 # Actualizar las transacciones en memoria
@@ -255,8 +259,8 @@ elif page == "Sincronizar Correos":
                                                 st.success("¡Transacción guardada!")
                                                 st.experimental_rerun()
                                             else:
-                                                st.error("Error al guardar la transacción")
                                                 print("Error: save_transaction retornó False")
+                                                st.error("Error al guardar la transacción")
 
                                         except Exception as e:
                                             print(f"Error en el proceso de guardado: {str(e)}")
