@@ -46,40 +46,29 @@ def load_transactions():
 def save_transaction(transaction):
     """Save a new transaction to CSV file"""
     try:
-        print(f"Intentando guardar transacción: {transaction}")
         ensure_data_files()
-        df = load_transactions()
-
-        # Asegurar que el tipo esté definido
-        if 'tipo' not in transaction:
-            transaction['tipo'] = 'real'
-            print("Tipo no definido, estableciendo como 'real'")
-
-        # Convertir fecha a datetime si es necesario
-        if isinstance(transaction['fecha'], str):
-            transaction['fecha'] = pd.to_datetime(transaction['fecha'])
-            print(f"Fecha convertida a datetime: {transaction['fecha']}")
-
+        
         # Crear un nuevo DataFrame con la transacción
-        new_transaction = {
-            'fecha': transaction['fecha'],
+        new_transaction = pd.DataFrame([{
+            'fecha': pd.to_datetime(transaction['fecha']),
             'monto': float(transaction['monto']),
             'descripcion': str(transaction['descripcion']),
             'categoria': str(transaction['categoria']),
-            'tipo': str(transaction['tipo'])
-        }
-
-        print(f"Nueva transacción formateada: {new_transaction}")
-        transaction_df = pd.DataFrame([new_transaction])
-
-        # Concatenar y guardar
-        new_df = pd.concat([df, transaction_df], ignore_index=True)
-        print(f"DataFrame actualizado, ahora tiene {len(new_df)} registros")
-
+            'tipo': 'real'
+        }])
+        
+        # Verificar si el archivo existe y tiene contenido
+        try:
+            df = pd.read_csv(TRANSACTIONS_FILE)
+            df['fecha'] = pd.to_datetime(df['fecha'])
+            new_df = pd.concat([df, new_transaction], ignore_index=True)
+        except:
+            new_df = new_transaction
+            
+        # Guardar directamente
         new_df.to_csv(TRANSACTIONS_FILE, index=False)
-        print(f"Archivo guardado exitosamente en {TRANSACTIONS_FILE}")
         return True
-
+        
     except Exception as e:
         print(f"Error guardando transacción: {str(e)}")
         return False
