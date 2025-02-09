@@ -212,6 +212,9 @@ elif page == "Sincronizar Correos":
                                 col1, col2, col3 = st.columns([1,1,2])
                                 with col1:
                                     if st.button("💾 Guardar", key=f"save_{idx}"):
+                                        print("\n--- Iniciando proceso de guardado ---")
+                                        print("Transacción original:", transaction)
+                                        
                                         # Asegurar que todos los campos necesarios estén presentes y convertir fecha
                                         save_data = {
                                             'fecha': transaction['fecha'] if isinstance(transaction['fecha'], datetime) else pd.to_datetime(transaction['fecha']),
@@ -220,8 +223,9 @@ elif page == "Sincronizar Correos":
                                             'categoria': str(transaction['categoria']),
                                             'tipo': 'real'
                                         }
-                                        print("Intentando guardar:", save_data)
+                                        print("Datos formateados para guardar:", save_data)
                                         save_success = save_transaction(save_data)
+                                        print("Resultado del guardado:", save_success)
                                         if save_success:
                                             # Actualizar las transacciones en memoria
                                             st.session_state.transactions = load_transactions()
