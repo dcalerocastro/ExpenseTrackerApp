@@ -186,17 +186,27 @@ elif page == "Sincronizar Correos":
                                 col1, col2 = st.columns(2)
                                 with col1:
                                     transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{id(transaction)}")
-                                    transaction['monto'] = st.number_input("Monto", value=float(transaction['monto']), key=f"amount_{id(transaction)}")
+                                    transaction['monto'] = st.number_input(
+                                        f"Monto ({transaction.get('moneda', 'PEN')})", 
+                                        value=float(transaction['monto']), 
+                                        key=f"amount_{id(transaction)}"
+                                    )
                                 with col2:
                                     transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{id(transaction)}")
                                     transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{id(transaction)}")
 
-                                transaction['tipo'] = 'real'  # Las transacciones del banco son siempre reales
+                                # Botones de acción en una misma línea
+                                col1, col2, col3 = st.columns([1,1,2])
+                                with col1:
+                                    if st.button("💾 Guardar", key=f"save_{id(transaction)}"):
+                                        save_transaction(transaction)
+                                        st.session_state.transactions = load_transactions()
+                                        st.success("¡Transacción guardada!")
+                                with col2:
+                                    if st.button("❌ Descartar", key=f"discard_{id(transaction)}"):
+                                        st.info("Transacción descartada")
+                                        st.experimental_rerun()
 
-                                if st.button("Guardar", key=f"save_{id(transaction)}"):
-                                    save_transaction(transaction)
-                                    st.session_state.transactions = load_transactions()
-                                    st.success("Transacción guardada exitosamente!")
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
                         st.markdown("""

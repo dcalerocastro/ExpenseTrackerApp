@@ -6,30 +6,32 @@ import re
 def parse_email_content(email_content):
     """
     Parse email content to extract transaction details.
-    Assumes common Peruvian bank email notification formats.
     """
     try:
         # Extract information using regex patterns
-        # Amount pattern (assuming Peruvian Soles format S/ XX.XX)
-        amount_pattern = r'S/\s*(\d+(?:\.\d{2})?)'
+        # Amount pattern (supports both S/ and US$)
+        amount_pattern = r'(?:S/|US\$)\s*(\d+(?:\.\d{2})?)'
         amount_match = re.search(amount_pattern, email_content)
 
-        # Date pattern (mantener flexible para diferentes formatos)
+        # Determine currency
+        currency = 'PEN' if 'S/' in email_content else 'USD' if 'US$' in email_content else 'PEN'
+
+        # Date pattern
         date_pattern = r'(\d{1,2}(?:/|-)\d{1,2}(?:/|-)\d{2,4})'
         date_match = re.search(date_pattern, email_content)
 
-        # Description pattern (línea que contiene el monto)
-        description = None
-        for line in email_content.split('\n'):
-            if 'S/' in line:
-                description = line.strip()
-                print(f"Línea con monto encontrada: {line.strip()}")
-                break
+        # Extract merchant name (between <b> tags after "en")
+        merchant_pattern = r'en\s*<b>(.*?)</b>'
+        merchant_match = re.search(merchant_pattern, email_content)
 
         if amount_match:
-            amount = amount_match.group(1)
-            amount = float(amount)
-            print(f"Monto extraído: S/ {amount:.2f}")
+            amount = float(amount_match.group(1))
+            print(f"Monto extraído: {amount:.2f} {currency}")
+
+            # Get merchant name or use default
+            description = (merchant_match.group(1) if merchant_match 
+                         else 'Transacción sin comercio')
+            print(f"Comercio extraído: {description}")
 
             # Parse date
             if date_match:
@@ -47,16 +49,17 @@ def parse_email_content(email_content):
             return {
                 'fecha': date,
                 'monto': amount,
-                'descripcion': description or 'Sin descripción',
-                'categoria': 'Sin Categorizar'
+                'descripcion': description,
+                'categoria': 'Sin Categorizar',
+                'moneda': currency
             }
         else:
-            print("No se encontró ningún monto en formato S/ XX.XX")
-            print(f"Contenido del correo: {email_content[:200]}...")  # Primeros 200 caracteres para debug
+            print("No se encontró ningún monto en el formato esperado")
+            print(f"Contenido del correo: {email_content[:200]}...")
 
     except Exception as e:
         print(f"Error parseando el correo: {str(e)}")
-        print(f"Contenido del correo: {email_content[:200]}...")  # Primeros 200 caracteres para debug
+        print(f"Contenido del correo: {email_content[:200]}...")
         return None
 
     return None
