@@ -47,49 +47,41 @@ def load_transactions():
         return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
 
 def save_transaction(transaction):
-    """Save a new transaction to CSV file"""
-    try:
-        # Verificar permisos
-        import os
-        print(f"Permisos de escritura del archivo: {os.access(TRANSACTIONS_FILE, os.W_OK)}")
-        
-        print("Intentando guardar la transacción:", transaction)
-        ensure_data_files()
+        """Save a new transaction to CSV file"""
+        try:
+            ensure_data_files()
 
-        # Crear un nuevo DataFrame con la transacción
-        new_transaction = pd.DataFrame([{
-            'fecha': pd.to_datetime(transaction['fecha']),
-            'monto': float(transaction['monto']),
-            'descripcion': str(transaction['descripcion']),
-            'categoria': str(transaction['categoria']),
-            'tipo': 'real'
-        }])
-        print(f"Nueva transacción formateada: \n{new_transaction.to_string()}")
+            # Formatear la transacción
+            formatted_transaction = {
+                'fecha': pd.to_datetime(transaction['fecha']).strftime('%Y-%m-%d'),
+                'monto': float(transaction['monto']),
+                'descripcion': str(transaction['descripcion']),
+                'categoria': str(transaction['categoria']),
+                'tipo': 'real'
+            }
 
-        # Cargar transacciones existentes
-        existing_df = load_transactions()
-        print(f"Transacciones existentes:\n{existing_df.to_string()}")
+            # Crear DataFrame con la nueva transacción
+            new_transaction = pd.DataFrame([formatted_transaction])
 
-        # Concatenar la nueva transacción
-        new_df = pd.concat([existing_df, new_transaction], ignore_index=True)
-        print(f"DataFrame después de concatenar: \n{new_df.to_string()}")
+            # Cargar transacciones existentes
+            try:
+                existing_df = pd.read_csv(TRANSACTIONS_FILE)
+                existing_df['fecha'] = pd.to_datetime(existing_df['fecha']).dt.strftime('%Y-%m-%d')
+            except:
+                existing_df = pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
 
-        # Guardar el archivo actualizado
-        new_df.to_csv(TRANSACTIONS_FILE, index=False)
-        
-        # Verificar el guardado
-        print(f"Verificando contenido de {TRANSACTIONS_FILE} después de guardar:")
-        df_check = pd.read_csv(TRANSACTIONS_FILE)
-        print(df_check.to_string())
-        
-        return True
+            # Concatenar y guardar
+            new_df = pd.concat([existing_df, new_transaction], ignore_index=True)
+            new_df.to_csv(TRANSACTIONS_FILE, index=False)
 
-    except Exception as e:
-        print(f"Error guardando transacción: {str(e)}")
-        print(f"Detalles de la transacción que causó el error: {transaction}")
-        import traceback
-        print("Stacktrace completo:", traceback.format_exc())
-        return False
+            return True
+
+        except Exception as e:
+            print(f"Error guardando transacción: {str(e)}")
+            print(f"Detalles de la transacción que causó el error: {transaction}")
+            import traceback
+            print("Stacktrace completo:", traceback.format_exc())
+            return False
 
 def load_categories():
     """Load categories from CSV file"""
