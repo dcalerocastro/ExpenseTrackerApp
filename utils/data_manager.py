@@ -64,40 +64,30 @@ def save_transaction(transaction):
         
         ensure_data_files()
 
-        # Formatear transacción
+        # Formatear transacción asegurando tipos de datos
         formatted_transaction = {
-            'fecha': pd.to_datetime(transaction['fecha']),
+            'fecha': pd.to_datetime(transaction['fecha']).strftime('%Y-%m-%d'),
             'monto': float(transaction['monto']),
             'descripcion': str(transaction['descripcion']).strip(),
-            'categoria': str(transaction['categoria']),
-            'tipo': 'real'
+            'categoria': str(transaction.get('categoria', 'Sin Categorizar')),
+            'tipo': str(transaction.get('tipo', 'real'))
         }
         print(f"Datos formateados: {formatted_transaction}")
 
-        # Crear DataFrame
-        new_df = pd.DataFrame([formatted_transaction])
-        print("Nuevo DataFrame creado")
-
-        # Cargar existentes
-        print("Cargando transacciones existentes...")
+        # Cargar CSV existente o crear nuevo
         try:
-            existing_df = pd.read_csv(TRANSACTIONS_FILE)
-            print(f"CSV cargado: {len(existing_df)} registros")
-            existing_df['fecha'] = pd.to_datetime(existing_df['fecha'])
+            df = pd.read_csv(TRANSACTIONS_FILE)
         except Exception as e:
-            print(f"Error cargando CSV: {str(e)}")
-            existing_df = pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
-            print("Creado DataFrame vacío")
+            print(f"Creando nuevo CSV: {str(e)}")
+            df = pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
 
-        # Concatenar y guardar
-        print("Concatenando DataFrames...")
-        final_df = pd.concat([existing_df, new_df], ignore_index=True)
-        print(f"DataFrame final: {len(final_df)} registros")
+        # Agregar nueva transacción
+        df.loc[len(df)] = formatted_transaction
         
-        print("Guardando CSV...")
-        final_df.to_csv(TRANSACTIONS_FILE, index=False, date_format='%Y-%m-%d')
-        print("CSV guardado exitosamente")
-
+        # Guardar de vuelta al CSV
+        df.to_csv(TRANSACTIONS_FILE, index=False)
+        print(f"Transacción guardada. Total registros: {len(df)}")
+        
         return True
 
     except Exception as e:

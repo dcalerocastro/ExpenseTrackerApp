@@ -26,12 +26,15 @@ def test_app_flow():
             print(f"\nGuardando transacción {idx + 1}:")
             print(f"Datos: {transaction}")
             
+            print(f"\nIntentando guardar transacción: {transaction}")
             save_result = save_transaction(transaction)
             print(f"Resultado del guardado: {'Éxito' if save_result else 'Falló'}")
             
-        print("\n4. Verificando transacciones guardadas...")
-        saved_transactions = load_transactions()
-        print(f"Total de transacciones en archivo: {len(saved_transactions)}")
+            # Verificar inmediatamente después del guardado
+            saved_transactions = pd.read_csv(TRANSACTIONS_FILE)
+            print(f"Verificación inmediata - Registros en CSV: {len(saved_transactions)}")
+            print("Últimas 5 transacciones:")
+            print(saved_transactions.tail())
         
     except Exception as e:
         print(f"Error en el flujo: {str(e)}")
