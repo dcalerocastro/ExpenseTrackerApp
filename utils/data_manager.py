@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 from datetime import datetime
+import traceback
 
 # Constants
 TRANSACTIONS_FILE = "data/transactions.csv"
@@ -47,49 +48,57 @@ def load_transactions():
         return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
 
 def save_transaction(transaction):
-        """Save a new transaction to CSV file"""
+    """Save a new transaction to CSV file with improved validation and error handling"""
+    try:
+        print("\n--- Iniciando guardado de transacción en data_manager ---")
+        print("Transacción a guardar:", transaction)
+        ensure_data_files()
+
+        # Validar y formatear la transacción
+        if not isinstance(transaction['fecha'], (datetime, pd.Timestamp)):
+            raise ValueError(f"Tipo de fecha inválido: {type(transaction['fecha'])}")
+
+        formatted_transaction = {
+            'fecha': pd.to_datetime(transaction['fecha']).strftime('%Y-%m-%d'),
+            'monto': float(transaction['monto']),
+            'descripcion': str(transaction['descripcion']).strip(),
+            'categoria': str(transaction['categoria']),
+            'tipo': str(transaction.get('tipo', 'real'))
+        }
+        print("Transacción formateada:", formatted_transaction)
+
+        # Crear DataFrame con la nueva transacción
+        new_transaction = pd.DataFrame([formatted_transaction])
+        print("DataFrame creado:", new_transaction.to_string())
+
+        # Cargar y validar transacciones existentes
         try:
-            print("\n--- Iniciando guardado de transacción ---")
-            print("Transacción a guardar:", transaction)
-            ensure_data_files()
-
-            # Formatear la transacción
-            formatted_transaction = {
-                'fecha': pd.to_datetime(transaction['fecha']).strftime('%Y-%m-%d'),
-                'monto': float(transaction['monto']),
-                'descripcion': str(transaction['descripcion']).strip(),
-                'categoria': str(transaction['categoria']),
-                'tipo': 'real'
-            }
-            print("Transacción formateada:", formatted_transaction)
-
-            # Crear DataFrame con la nueva transacción
-            new_transaction = pd.DataFrame([formatted_transaction])
-            print("DataFrame creado:", new_transaction.to_string())
-
-            # Cargar transacciones existentes
-            try:
-                existing_df = pd.read_csv(TRANSACTIONS_FILE)
+            existing_df = pd.read_csv(TRANSACTIONS_FILE)
+            if len(existing_df) > 0:
                 existing_df['fecha'] = pd.to_datetime(existing_df['fecha']).dt.strftime('%Y-%m-%d')
-                print("Transacciones existentes cargadas:", len(existing_df))
-            except Exception as e:
-                print("Error cargando existentes:", str(e))
-                existing_df = pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
-
-            # Concatenar y guardar
-            new_df = pd.concat([existing_df, new_transaction], ignore_index=True)
-            print("DataFrame final:", new_df.to_string())
-            new_df.to_csv(TRANSACTIONS_FILE, index=False)
-            print("Archivo guardado exitosamente")
-
-            return True
-
+            print("Transacciones existentes cargadas:", len(existing_df))
         except Exception as e:
-            print(f"Error guardando transacción: {str(e)}")
-            print(f"Detalles de la transacción que causó el error: {transaction}")
-            import traceback
-            print("Stacktrace completo:", traceback.format_exc())
-            return False
+            print("Error cargando existentes, creando nuevo DataFrame:", str(e))
+            existing_df = pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
+
+        # Concatenar y guardar
+        final_df = pd.concat([existing_df, new_transaction], ignore_index=True)
+        print("DataFrame final antes de guardar:")
+        print(final_df.to_string())
+
+        final_df.to_csv(TRANSACTIONS_FILE, index=False)
+        print("Archivo guardado exitosamente")
+
+        # Verificar que se guardó correctamente
+        verification_df = pd.read_csv(TRANSACTIONS_FILE)
+        print(f"Verificación - registros en archivo: {len(verification_df)}")
+
+        return True
+
+    except Exception as e:
+        print(f"Error guardando transacción: {str(e)}")
+        print(f"Detalles completos del error:\n{traceback.format_exc()}")
+        return False
 
 def load_categories():
     """Load categories from CSV file"""

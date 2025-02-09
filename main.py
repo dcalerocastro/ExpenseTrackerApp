@@ -214,27 +214,52 @@ elif page == "Sincronizar Correos":
                                     if st.button("💾 Guardar", key=f"save_{idx}"):
                                         print("\n--- Iniciando proceso de guardado ---")
                                         print("Transacción original:", transaction)
-                                        
-                                        # Asegurar que todos los campos necesarios estén presentes y convertir fecha
-                                        save_data = {
-                                            'fecha': transaction['fecha'] if isinstance(transaction['fecha'], datetime) else pd.to_datetime(transaction['fecha']),
-                                            'monto': float(transaction['monto']),
-                                            'descripcion': str(transaction['descripcion']),
-                                            'categoria': str(transaction['categoria']),
-                                            'tipo': 'real'
-                                        }
-                                        print("Datos formateados para guardar:", save_data)
-                                        save_success = save_transaction(save_data)
-                                        print("Resultado del guardado:", save_success)
-                                        if save_success:
-                                            # Actualizar las transacciones en memoria
-                                            st.session_state.transactions = load_transactions()
-                                            # Remover la transacción guardada de pendientes
-                                            st.session_state.pending_transactions.pop(idx)
-                                            st.success("¡Transacción guardada!")
-                                            st.rerun()
-                                        else:
-                                            st.error("Error al guardar la transacción")
+
+                                        try:
+                                            # Validar y formatear los datos antes de guardar
+                                            fecha = pd.to_datetime(transaction['fecha'])
+                                            if not isinstance(fecha, (datetime, pd.Timestamp)):
+                                                raise ValueError(f"Fecha inválida: {fecha}")
+
+                                            monto = float(transaction['monto'])
+                                            if monto <= 0:
+                                                raise ValueError(f"Monto inválido: {monto}")
+
+                                            descripcion = str(transaction['descripcion']).strip()
+                                            if not descripcion:
+                                                raise ValueError("La descripción no puede estar vacía")
+
+                                            categoria = str(transaction['categoria'])
+                                            if not categoria or categoria not in st.session_state.categories:
+                                                raise ValueError(f"Categoría inválida: {categoria}")
+
+                                            # Crear diccionario con datos validados
+                                            save_data = {
+                                                'fecha': fecha,
+                                                'monto': monto,
+                                                'descripcion': descripcion,
+                                                'categoria': categoria,
+                                                'tipo': 'real'
+                                            }
+
+                                            print("Datos validados para guardar:", save_data)
+
+                                            # Intentar guardar la transacción
+                                            if save_transaction(save_data):
+                                                print("Guardado exitoso, actualizando estado...")
+                                                # Actualizar las transacciones en memoria
+                                                st.session_state.transactions = load_transactions()
+                                                # Remover la transacción guardada de pendientes
+                                                st.session_state.pending_transactions.pop(idx)
+                                                st.success("¡Transacción guardada!")
+                                                st.rerun()
+                                            else:
+                                                raise Exception("Error en save_transaction")
+
+                                        except Exception as e:
+                                            print(f"Error en el proceso de guardado: {str(e)}")
+                                            print(f"Datos que causaron el error: {transaction}")
+                                            st.error(f"Error al guardar la transacción: {str(e)}")
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{idx}"):
                                         # Remover la transacción descartada
