@@ -188,89 +188,43 @@ elif page == "Sincronizar Correos":
 
                     if transactions:
                         st.success(f"Se encontraron {len(transactions)} notificaciones")
-
-                        # Guardar transacciones en session_state si no existen
-                        if 'pending_transactions' not in st.session_state:
-                            st.session_state.pending_transactions = transactions
-
-                        # Mostrar transacciones encontradas
-                        for idx, transaction in enumerate(st.session_state.pending_transactions):
-                            with st.expander(f"Transacción: {transaction['descripcion']}"):
-                                col1, col2 = st.columns(2)
+                        
+                        for transaction in transactions:
+                            with st.expander(f"Transacción: {transaction['descripcion']} - S/. {transaction['monto']:.2f}", expanded=True):
+                                col1, col2 = st.columns([3, 1])
+                                
                                 with col1:
-                                    transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{idx}")
-                                    transaction['monto'] = st.number_input(
-                                        f"Monto ({transaction.get('moneda', 'PEN')})", 
-                                        value=float(transaction['monto']), 
-                                        key=f"amount_{idx}"
+                                    st.write(f"📅 Fecha: {transaction['fecha'].strftime('%d/%m/%Y')}")
+                                    st.write(f"💰 Monto: S/. {transaction['monto']:.2f}")
+                                    st.write(f"📝 Descripción: {transaction['descripcion']}")
+                                    categoria = st.selectbox(
+                                        "🏷️ Categoría",
+                                        options=st.session_state.categories,
+                                        key=f"cat_{transaction['descripcion']}"
                                     )
+                                
                                 with col2:
-                                    transaction['descripcion'] = st.text_input("Descripción", transaction['descripcion'], key=f"desc_{idx}")
-                                    transaction['categoria'] = st.selectbox("Categoría", options=st.session_state.categories, key=f"cat_{idx}")
-
-                                # Botones de acción en una misma línea
-                                col1, col2, col3 = st.columns([1,1,2])
-                                with col1:
-                                    if st.button("💾 Guardar", key=f"save_{idx}"):
-                                        print("\n--- BOTÓN GUARDAR PRESIONADO ---")
-                                        print(f"Índice de transacción: {idx}")
-
+                                    if st.button("✅ Guardar", key=f"save_{transaction['descripcion']}"):
                                         try:
-                                            # Validar y formatear los datos antes de guardar
-                                            print("Iniciando validación de datos...")
-                                            fecha = pd.to_datetime(transaction['fecha'])
-                                            if not isinstance(fecha, (datetime, pd.Timestamp)):
-                                                raise ValueError(f"Fecha inválida: {fecha}")
-
-                                            monto = float(transaction['monto'])
-                                            if monto <= 0:
-                                                raise ValueError(f"Monto inválido: {monto}")
-
-                                            descripcion = str(transaction['descripcion']).strip()
-                                            if not descripcion:
-                                                raise ValueError("La descripción no puede estar vacía")
-
-                                            categoria = str(transaction['categoria'])
-                                            if not categoria or categoria not in st.session_state.categories:
-                                                raise ValueError(f"Categoría inválida: {categoria}")
-
-                                            # Crear diccionario con datos validados
                                             save_data = {
-                                                'fecha': fecha,
-                                                'monto': monto,
-                                                'descripcion': descripcion,
+                                                'fecha': transaction['fecha'],
+                                                'monto': float(transaction['monto']),
+                                                'descripcion': transaction['descripcion'],
                                                 'categoria': categoria,
                                                 'tipo': 'real'
                                             }
-
-                                            print("Datos validados para guardar:", save_data)
-
-                                            # Intentar guardar la transacción
-                                            print("Intentando guardar transacción...")
-                                            save_success = save_transaction(save_data)
-                                            print("Resultado del guardado:", save_success)
-
-                                            if save_success:
-                                                print("Guardado exitoso, actualizando estado...")
-                                                # Actualizar las transacciones en memoria
+                                            
+                                            if save_transaction(save_data):
                                                 st.session_state.transactions = load_transactions()
-                                                # Remover la transacción guardada de pendientes
-                                                st.session_state.pending_transactions.pop(idx)
-                                                st.success("¡Transacción guardada!")
-                                                st.experimental_rerun()
+                                                st.success("✅ Guardado")
+                                                st.balloons()
                                             else:
-                                                print("Error: save_transaction retornó False")
-                                                st.error("Error al guardar la transacción")
-
+                                                st.error("❌ Error al guardar")
                                         except Exception as e:
-                                            print(f"Error en el proceso de guardado: {str(e)}")
-                                            print(f"Datos que causaron el error: {transaction}")
-                                            st.error(f"Error al guardar la transacción: {str(e)}")
-                                with col2:
-                                    if st.button("❌ Descartar", key=f"discard_{idx}"):
-                                        # Remover la transacción descartada
-                                        st.session_state.pending_transactions.pop(idx)
-                                        st.info("Transacción descartada")
+                                            st.error(f"Error: {str(e)}")
+                                    
+                                    if st.button("❌ Descartar", key=f"discard_{transaction['descripcion']}"):
+                                        st.info("Descartado")
                                         st.rerun()
 
                     else:
