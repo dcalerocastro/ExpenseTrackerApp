@@ -203,17 +203,24 @@ elif page == "Sincronizar Correos":
                                 col1, col2, col3 = st.columns([1,1,2])
                                 with col1:
                                     if st.button("💾 Guardar", key=f"save_{idx}"):
-                                        transaction['tipo'] = 'real'  # Asegurar que sea real
-                                        save_success = save_transaction(transaction)
+                                        # Asegurar que todos los campos necesarios estén presentes
+                                        save_data = {
+                                            'fecha': transaction['fecha'],
+                                            'monto': float(transaction['monto']),
+                                            'descripcion': str(transaction['descripcion']),
+                                            'categoria': str(transaction['categoria']),
+                                            'tipo': 'real'
+                                        }
+                                        save_success = save_transaction(save_data)
                                         if save_success:
-                                            # Actualizar las transacciones
+                                            # Actualizar las transacciones en memoria
                                             st.session_state.transactions = load_transactions()
-                                            # Crear una nueva lista sin la transacción guardada
-                                            new_pending = st.session_state.pending_transactions.copy()
-                                            new_pending.pop(idx)
-                                            st.session_state.pending_transactions = new_pending
+                                            # Remover la transacción guardada de pendientes
+                                            st.session_state.pending_transactions.pop(idx)
                                             st.success("¡Transacción guardada!")
                                             st.experimental_rerun()
+                                        else:
+                                            st.error("Error al guardar la transacción")
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{idx}"):
                                         # Remover la transacción descartada
