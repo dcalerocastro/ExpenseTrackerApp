@@ -67,7 +67,7 @@ if page == "Dashboard":
                         values='monto', 
                         names='categoria',
                         title='Distribución de Gastos por Categoría',
-                        color='tipo')  # Diferenciar por tipo
+                        color='tipo')
         st.plotly_chart(fig_pie)
 
     with col2:
@@ -91,7 +91,15 @@ if page == "Dashboard":
 
     # Transactions table
     st.subheader("Listado de Transacciones")
-    st.dataframe(filtered_df)
+    if not filtered_df.empty:
+        # Formatear la fecha para mostrar
+        display_df = filtered_df.copy()
+        display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d')
+        # Ordenar por fecha más reciente
+        display_df = display_df.sort_values('fecha', ascending=False)
+        st.dataframe(display_df)
+    else:
+        st.info("No hay transacciones para mostrar en el período seleccionado")
 
     # Export button
     if st.button("Exportar Datos"):
@@ -145,7 +153,8 @@ elif page == "Sincronizar Correos":
     # Formulario de configuración de Gmail
     with st.form("gmail_config"):
         email = st.text_input("Correo Gmail", value=os.getenv('EMAIL_USER', ''))
-        password = st.text_input("Contraseña de Aplicación", type="password", help="Contraseña de 16 caracteres generada por Google")
+        password = st.text_input("Contraseña de Aplicación", type="password", 
+                               help="Contraseña de 16 caracteres generada por Google")
 
         st.markdown("""
         ### ¿Cómo obtener la Contraseña de Aplicación?
@@ -186,7 +195,7 @@ elif page == "Sincronizar Correos":
 
                         # Mostrar transacciones encontradas
                         for idx, transaction in enumerate(st.session_state.pending_transactions):
-                            with st.expander(f"Transacción: {transaction['descripcion']} - {transaction['fecha'].strftime('%Y-%m-%d')}"):
+                            with st.expander(f"Transacción: {transaction['descripcion']}"):
                                 col1, col2 = st.columns(2)
                                 with col1:
                                     transaction['fecha'] = st.date_input("Fecha", transaction['fecha'], key=f"date_{idx}")
@@ -218,7 +227,7 @@ elif page == "Sincronizar Correos":
                                             # Remover la transacción guardada de pendientes
                                             st.session_state.pending_transactions.pop(idx)
                                             st.success("¡Transacción guardada!")
-                                            st.experimental_rerun()
+                                            st.rerun()
                                         else:
                                             st.error("Error al guardar la transacción")
                                 with col2:
@@ -226,15 +235,11 @@ elif page == "Sincronizar Correos":
                                         # Remover la transacción descartada
                                         st.session_state.pending_transactions.pop(idx)
                                         st.info("Transacción descartada")
-                                        st.experimental_rerun()
+                                        st.rerun()
 
                     else:
-                        st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
-                        st.markdown("""
-                        1. Tu cuenta tenga correos del BCP con el asunto exacto
-                        2. Los correos estén dentro del período seleccionado
-                        3. La contraseña de aplicación sea correcta
-                        """)
+                        st.warning("No se encontraron notificaciones en el período seleccionado.")
+
             except Exception as e:
                 st.error(f"Error al sincronizar: {str(e)}")
 
