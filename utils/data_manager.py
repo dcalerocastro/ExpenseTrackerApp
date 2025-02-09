@@ -49,7 +49,11 @@ def load_transactions():
 def save_transaction(transaction):
     """Save a new transaction to CSV file"""
     try:
-        # Asegurar que el archivo existe
+        # Verificar permisos
+        import os
+        print(f"Permisos de escritura del archivo: {os.access(TRANSACTIONS_FILE, os.W_OK)}")
+        
+        print("Intentando guardar la transacción:", transaction)
         ensure_data_files()
 
         # Crear un nuevo DataFrame con la transacción
@@ -60,23 +64,31 @@ def save_transaction(transaction):
             'categoria': str(transaction['categoria']),
             'tipo': 'real'
         }])
-        print(f"Nueva transacción a guardar: \n{new_transaction.to_string()}")
+        print(f"Nueva transacción formateada: \n{new_transaction.to_string()}")
 
         # Cargar transacciones existentes
         existing_df = load_transactions()
+        print(f"Transacciones existentes:\n{existing_df.to_string()}")
 
         # Concatenar la nueva transacción
         new_df = pd.concat([existing_df, new_transaction], ignore_index=True)
-        print(f"DataFrame actualizado, ahora tiene {len(new_df)} registros")
+        print(f"DataFrame después de concatenar: \n{new_df.to_string()}")
 
         # Guardar el archivo actualizado
         new_df.to_csv(TRANSACTIONS_FILE, index=False)
-        print(f"Transacción guardada exitosamente en {TRANSACTIONS_FILE}")
+        
+        # Verificar el guardado
+        print(f"Verificando contenido de {TRANSACTIONS_FILE} después de guardar:")
+        df_check = pd.read_csv(TRANSACTIONS_FILE)
+        print(df_check.to_string())
+        
         return True
 
     except Exception as e:
         print(f"Error guardando transacción: {str(e)}")
         print(f"Detalles de la transacción que causó el error: {transaction}")
+        import traceback
+        print("Stacktrace completo:", traceback.format_exc())
         return False
 
 def load_categories():
