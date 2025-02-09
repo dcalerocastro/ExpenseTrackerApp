@@ -210,11 +210,13 @@ elif page == "Sincronizar Correos":
                                             # Remover la transacción guardada de las pendientes
                                             st.session_state.pending_transactions.pop(idx)
                                             st.success("¡Transacción guardada!")
+                                            st.rerun()
                                 with col2:
                                     if st.button("❌ Descartar", key=f"discard_{idx}"):
                                         # Remover la transacción descartada
                                         st.session_state.pending_transactions.pop(idx)
                                         st.info("Transacción descartada")
+                                        st.rerun()
 
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado. Verifica que:")
