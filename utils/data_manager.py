@@ -83,6 +83,12 @@ def save_transaction(transaction_data):
         db.add(new_transaction)
         db.commit()
         print("Transacción guardada exitosamente")
+        # Verificar inmediatamente después del guardado
+        saved_transactions = db.query(Transaction).all()
+        print(f"Verificación inmediata - Registros en BD: {len(saved_transactions)}")
+        print("Últimas 5 transacciones:")
+        for t in saved_transactions[-5:]:
+            print(f"{t.fecha}: {t.descripcion} - {t.monto}")
         return True
 
     except Exception as e:
