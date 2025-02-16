@@ -263,7 +263,7 @@ def show_register_page():
 # Mostrar páginas de autenticación si no hay usuario logueado
 if not st.session_state.user_id:
     # Verificar si hay un token de recuperación en la URL
-    params = st.experimental_get_query_params()
+    params = st.query_params
     reset_token = params.get("reset_token", [None])[0]
 
     if reset_token:
@@ -284,7 +284,7 @@ if not st.session_state.user_id:
                         st.success(message)
                         st.info("Por favor, inicia sesión con tu nueva contraseña")
                         # Limpiar el token de la URL
-                        st.experimental_set_query_params()
+                        st.query_params.clear()
                         time.sleep(2)
                         st.rerun()
                     else:
@@ -929,8 +929,8 @@ elif page == "Sincronizar Correos":
                         st.rerun()
 
 # Add reset password page logic
-if 'reset_token' in st.experimental_get_query_params():
-    token = st.experimental_get_query_params()['reset_token'][0]
+if 'reset_token' in st.query_params:
+    token = st.query_params['reset_token'][0]
 
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
     st.title("Restablecer Contraseña")
@@ -954,7 +954,7 @@ if 'reset_token' in st.experimental_get_query_params():
                     st.success(message)
                     st.info("Por favor, inicia sesión con tu nueva contraseña")
                     # Limpiar el token de la URL
-                    st.experimental_set_query_params()
+                    st.query_params.clear()
                 else:
                     st.error(message)
 
