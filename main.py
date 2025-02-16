@@ -81,18 +81,6 @@ st.markdown("""
             color: #666;
             font-size: 0.9rem;
         }
-        .google-btn {
-            width: 100%;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 0.5rem;
-            margin: 0.5rem 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
         .input-label {
             font-size: 0.9rem;
             color: #666;
@@ -109,16 +97,6 @@ def show_login_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
     st.title("Welcome to Finance App")
     st.markdown("Start your financial journey here", unsafe_allow_html=True)
-
-    st.markdown("""
-        <button class="google-btn">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" 
-                 style="height: 20px; margin-right: 10px;">
-            Sign in with Google
-        </button>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="divider"><span>OR CONTINUE WITH</span></div>', unsafe_allow_html=True)
 
     with st.form("login_form"):
         st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
@@ -151,16 +129,6 @@ def show_register_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
     st.title("Create Account")
     st.markdown("Join us to manage your finances", unsafe_allow_html=True)
-
-    st.markdown("""
-        <button class="google-btn">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" 
-                 style="height: 20px; margin-right: 10px;">
-            Sign up with Google
-        </button>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<div class="divider"><span>OR CONTINUE WITH</span></div>', unsafe_allow_html=True)
 
     with st.form("register_form"):
         st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
