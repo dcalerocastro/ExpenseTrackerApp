@@ -57,11 +57,15 @@ st.markdown("""
             width: 100%;
             border-radius: 8px;
             padding: 0.5rem;
-            background-color: #DB7093;
+            background-color: #4A4FEB;
             color: white;
             border: none;
             margin: 0.5rem 0;
             font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .stButton > button:hover {
+            background-color: #3A3FD9;
         }
         .auth-form {
             max-width: 400px;
@@ -100,6 +104,27 @@ st.markdown("""
         .stTextInput > div > div {
             border-radius: 8px;
             border: 1px solid #ddd;
+        }
+        div[role="radiogroup"] > div {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+        }
+        div[role="radiogroup"] > div:hover {
+            background-color: rgba(74, 79, 235, 0.1);
+        }
+        .st-emotion-cache-1inwz65 {
+            font-size: 1rem;
+            font-weight: 400;
+            color: #262730;
+        }
+        .streamlit-expanderHeader {
+            background-color: rgba(74, 79, 235, 0.1);
+            border-radius: 8px;
+        }
+        .streamlit-expanderContent {
+            border-radius: 0 0 8px 8px;
+            border: 1px solid rgba(74, 79, 235, 0.2);
         }
     </style>
 """, unsafe_allow_html=True)
