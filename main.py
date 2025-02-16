@@ -17,6 +17,8 @@ import os
 from utils.database import init_db
 # Add import for new functions
 from utils.email_manager import get_email_accounts, save_email_account, decrypt_password, update_last_sync, delete_email_account, update_email_account
+from sqlalchemy.orm import Session
+from utils.database import get_db, Transaction, SessionLocal # Assuming these are defined elsewhere
 
 # Initialize database tables
 print("Iniciando creación de tablas...")
@@ -262,6 +264,7 @@ with st.sidebar:
     menu_options = {
         "🏠 Dashboard": "Dashboard",
         "💰 Ingresar Gasto": "Ingresar Gasto",
+        "📊 Gestionar Transacciones": "Gestionar Transacciones",
         "📧 Sincronizar Correos": "Sincronizar Correos",
         "🏷️ Gestionar Categorías": "Gestionar Categorías",
         "📊 Gestionar Presupuestos": "Gestionar Presupuestos"
@@ -407,6 +410,122 @@ elif page == "Gestionar Categorías":
     st.subheader("Categorías Actuales")
     for category in st.session_state.categories:
         st.write(f"- {category}")
+
+elif page == "Gestionar Transacciones":
+    st.title("📊 Gestionar Transacciones")
+
+    # Forzar recarga de transacciones
+    update_transactions()
+
+    # Filtros de fecha
+    col1, col2 = st.columns(2)
+    with col1:
+        year = st.selectbox(
+            "Año",
+            options=sorted(st.session_state.transactions['fecha'].dt.year.unique()),
+            index=len(st.session_state.transactions['fecha'].dt.year.unique()) - 1,
+            key='trans_year'
+        )
+    with col2:
+        month = st.selectbox(
+            "Mes",
+            options=list(range(1, 13)),
+            index=datetime.now().month - 1,
+            format_func=lambda x: ['Enero', 'Febrero', 'Marzo', 'Abril', 
+                                'Mayo', 'Junio', 'Julio', 'Agosto',
+                                'Septiembre', 'Octubre', 'Noviembre', 
+                                'Diciembre'][x-1],
+            key='trans_month'
+        )
+
+    # Filtrar transacciones por mes y año
+    filtered_df = st.session_state.transactions[
+        (st.session_state.transactions['fecha'].dt.year == year) &
+        (st.session_state.transactions['fecha'].dt.month == month)
+    ]
+
+    if filtered_df.empty:
+        st.info("No hay transacciones para el período seleccionado")
+    else:
+        # Mostrar todas las transacciones con capacidad de edición
+        st.write("### Transacciones del Período")
+
+        for idx, row in filtered_df.iterrows():
+            with st.expander(f"{row['fecha'].strftime('%Y-%m-%d')} - {row['descripcion']} - S/. {row['monto']:.2f}", expanded=False):
+                with st.form(f"edit_transaction_{idx}"):
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        new_date = st.date_input(
+                            "Fecha",
+                            value=row['fecha'].date(),
+                            key=f"date_{idx}"
+                        )
+                        new_amount = st.number_input(
+                            "Monto",
+                            value=float(row['monto']),
+                            step=0.1,
+                            key=f"amount_{idx}"
+                        )
+
+                    with col2:
+                        new_description = st.text_input(
+                            "Descripción",
+                            value=row['descripcion'],
+                            key=f"desc_{idx}"
+                        )
+                        new_category = st.selectbox(
+                            "Categoría",
+                            options=st.session_state.categories,
+                            index=st.session_state.categories.index(row['categoria']) if row['categoria'] in st.session_state.categories else 0,
+                            key=f"cat_{idx}"
+                        )
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.form_submit_button("💾 Guardar Cambios"):
+                            # Actualizar la transacción en la base de datos
+                            with SessionLocal() as db:
+                                transaction = db.query(Transaction).filter(
+                                    Transaction.fecha == row['fecha'],
+                                    Transaction.monto == row['monto'],
+                                    Transaction.descripcion == row['descripcion'],
+                                    Transaction.user_id == st.session_state.user_id
+                                ).first()
+
+                                if transaction:
+                                    transaction.fecha = datetime.combine(new_date, datetime.min.time())
+                                    transaction.monto = new_amount
+                                    transaction.descripcion = new_description
+                                    transaction.categoria = new_category
+                                    db.commit()
+                                    st.success("✅ Transacción actualizada")
+                                    # Recargar transacciones
+                                    update_transactions()
+                                    st.rerun()
+                                else:
+                                    st.error("❌ No se encontró la transacción")
+
+                    with col2:
+                        if st.form_submit_button("🗑️ Eliminar"):
+                            with SessionLocal() as db:
+                                transaction = db.query(Transaction).filter(
+                                    Transaction.fecha == row['fecha'],
+                                    Transaction.monto == row['monto'],
+                                    Transaction.descripcion == row['descripcion'],
+                                    Transaction.user_id == st.session_state.user_id
+                                ).first()
+
+                                if transaction:
+                                    db.delete(transaction)
+                                    db.commit()
+                                    st.success("✅ Transacción eliminada")
+                                    # Recargar transacciones
+                                    update_transactions()
+                                    st.rerun()
+                                else:
+                                    st.error("❌ No se encontró la transacción")
+
 
 elif page == "Gestionar Presupuestos":
     st.title("Gestionar Presupuestos Mensuales")
