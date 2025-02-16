@@ -29,11 +29,15 @@ if 'synced_transactions' not in st.session_state:
 st.sidebar.title("Navegación")
 page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Correos", "Gestionar Categorías"])
 
+# Función para actualizar las transacciones
+def update_transactions():
+    st.session_state.transactions = load_transactions()
+
 if page == "Dashboard":
     st.title("Dashboard de Gastos")
 
-    # Recargar transacciones cada vez que se accede al dashboard
-    st.session_state.transactions = load_transactions()
+    # Forzar recarga de transacciones
+    update_transactions()
 
     if st.session_state.transactions.empty:
         st.info("No hay transacciones registradas aún.")
@@ -56,6 +60,10 @@ if page == "Dashboard":
             (st.session_state.transactions['fecha'] <= end_datetime)
         ]
 
+        # Debug info
+        st.write(f"Total de transacciones cargadas: {len(st.session_state.transactions)}")
+        st.write(f"Transacciones filtradas: {len(filtered_df)}")
+
         # Summary metrics
         col1, col2, col3, col4 = st.columns(4)
         real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
@@ -70,11 +78,28 @@ if page == "Dashboard":
         with col4:
             st.metric("Número de Transacciones", len(filtered_df))
 
-        # Visualizations
-        col1, col2 = st.columns(2)
+        # Botón para recargar datos
+        if st.button("↻ Recargar Datos"):
+            update_transactions()
+            st.experimental_rerun()
 
-        with col1:
-            if not filtered_df.empty:
+        # Transactions table
+        st.subheader("Listado de Transacciones")
+        if not filtered_df.empty:
+            # Formatear la fecha para mostrar
+            display_df = filtered_df.copy()
+            display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d')
+            # Ordenar por fecha más reciente
+            display_df = display_df.sort_values('fecha', ascending=False)
+            st.dataframe(display_df)
+        else:
+            st.info("No hay transacciones para mostrar en el período seleccionado")
+
+        # Visualizations
+        if not filtered_df.empty:
+            col1, col2 = st.columns(2)
+
+            with col1:
                 # Pie chart by category
                 fig_pie = px.pie(filtered_df, 
                                values='monto', 
@@ -82,11 +107,8 @@ if page == "Dashboard":
                                title='Distribución de Gastos por Categoría',
                                color='tipo')
                 st.plotly_chart(fig_pie)
-            else:
-                st.info("No hay datos para mostrar en el gráfico de categorías")
 
-        with col2:
-            if not filtered_df.empty:
+            with col2:
                 # Time series of expenses
                 fig_line = go.Figure()
 
@@ -106,20 +128,6 @@ if page == "Dashboard":
 
                 fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
                 st.plotly_chart(fig_line)
-            else:
-                st.info("No hay datos para mostrar en el gráfico temporal")
-
-        # Transactions table
-        st.subheader("Listado de Transacciones")
-        if not filtered_df.empty:
-            # Formatear la fecha para mostrar
-            display_df = filtered_df.copy()
-            display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d')
-            # Ordenar por fecha más reciente
-            display_df = display_df.sort_values('fecha', ascending=False)
-            st.dataframe(display_df)
-        else:
-            st.info("No hay transacciones para mostrar en el período seleccionado")
 
         # Export button
         if st.button("Exportar Datos"):
@@ -159,9 +167,12 @@ elif page == "Ingresar Gasto":
                 'tipo': tipo,
                 'moneda': 'PEN'
             }
-            save_transaction(transaction)
-            st.session_state.transactions = load_transactions()
-            st.success("¡Gasto guardado exitosamente!")
+            if save_transaction(transaction):
+                update_transactions()
+                st.success("¡Gasto guardado exitosamente!")
+                st.experimental_rerun()
+            else:
+                st.error("Error al guardar el gasto")
 
 elif page == "Sincronizar Correos":
     st.title("Sincronización de Notificaciones BCP")
