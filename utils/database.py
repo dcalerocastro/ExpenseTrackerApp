@@ -1,7 +1,7 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 
 # Obtener la URL de la base de datos del entorno
@@ -32,7 +32,18 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     categoria = Column(String, unique=True, nullable=False)
-    presupuesto = Column(Float, nullable=True)  # Nuevo campo para presupuesto
+    presupuesto = Column(Float, nullable=True)  # Presupuesto actual
+    presupuestos = relationship("BudgetHistory", back_populates="category")
+
+class BudgetHistory(Base):
+    __tablename__ = "budget_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey('categories.id'))
+    fecha = Column(DateTime, nullable=False)  # Fecha de inicio del presupuesto
+    monto = Column(Float, nullable=False)
+
+    category = relationship("Category", back_populates="presupuestos")
 
 # Crear las tablas
 def init_db():
@@ -59,7 +70,7 @@ def get_db():
     finally:
         db.close()
 
-# Función para migrar datos de CSV a SQL
+# Función para migrar datos de CSV a SQL (needs adjustment for BudgetHistory)
 def migrate_csv_to_sql():
     """
     Migra los datos existentes de los archivos CSV a la base de datos SQL.
@@ -94,6 +105,22 @@ def migrate_csv_to_sql():
                     moneda = str(row.get('moneda', 'PEN')) # Handle missing moneda column
                 )
                 db.add(transaction)
+
+        # Add Budget History Migration (requires a budget_history.csv file)
+        csv_path = Path("data/budget_history.csv")
+        if csv_path.exists():
+            budget_history_df = pd.read_csv(csv_path)
+            for _, row in budget_history_df.iterrows():
+                try:
+                  budget_entry = BudgetHistory(
+                      category_id = int(row['category_id']),
+                      fecha = pd.to_datetime(row['fecha']),
+                      monto = float(row['monto'])
+                  )
+                  db.add(budget_entry)
+                except (KeyError, ValueError) as e:
+                    print(f"Error processing row in budget_history.csv: {row}, Error: {e}")
+
 
         db.commit()
         print("Migración completada exitosamente")

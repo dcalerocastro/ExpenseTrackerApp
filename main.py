@@ -12,7 +12,8 @@ from utils.data_manager import (
     load_categories,
     save_categories,
     load_categories_with_budget,
-    update_category_budget
+    update_category_budget,
+    get_budget_history
 )
 import os
 
@@ -329,11 +330,22 @@ elif page == "Gestionar Presupuestos":
 
     st.info("""
     Aquí puedes configurar el presupuesto mensual para cada categoría.
-    Los presupuestos se renuevan cada mes y pueden ser diferentes mes a mes.
+    Los presupuestos se mantienen en un histórico, permitiendo ver la evolución 
+    a lo largo del tiempo.
     """)
 
-    # Cargar categorías con sus presupuestos
-    categories_with_budget = load_categories_with_budget()
+    # Selector de mes
+    mes_seleccionado = st.date_input(
+        "Selecciona el mes para ver/editar presupuestos",
+        value=datetime.now().date(),
+        min_value=datetime(2024, 1, 1).date(),
+        max_value=datetime(2025, 12, 31).date()
+    )
+
+    # Cargar categorías con sus presupuestos para el mes seleccionado
+    categories_with_budget = load_categories_with_budget(
+        datetime.combine(mes_seleccionado, datetime.min.time())
+    )
 
     # Calcular presupuesto total
     total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
@@ -359,7 +371,7 @@ elif page == "Gestionar Presupuestos":
             st.write(f"### {categoria}")
 
         with col2:
-            # Aseguramos que presupuesto sea un número, usando 0.0 como valor por defecto si es None
+            # Aseguramos que presupuesto sea un número
             presupuesto_actual = float(presupuesto if presupuesto is not None else 0.0)
             nuevo_presupuesto = st.number_input(
                 f"Presupuesto mensual para {categoria}",
@@ -370,25 +382,37 @@ elif page == "Gestionar Presupuestos":
 
         with col3:
             if st.button("Actualizar", key=f"update_{categoria}"):
-                if update_category_budget(categoria, nuevo_presupuesto):
+                if update_category_budget(
+                    categoria, 
+                    nuevo_presupuesto,
+                    datetime.combine(mes_seleccionado, datetime.min.time())
+                ):
                     st.success(f"Presupuesto actualizado para {categoria}")
                 else:
                     st.error("Error al actualizar el presupuesto")
 
-    # Mostrar resumen de presupuestos
+    # Mostrar histórico
     st.divider()
-    st.subheader("Distribución de Presupuestos Mensuales")
+    st.subheader("Histórico de Presupuestos")
 
-    # Crear gráfico de barras para presupuestos
-    if categories_with_budget:
-        df_budget = pd.DataFrame(categories_with_budget, columns=['Categoría', 'Presupuesto'])
-        # Asegurar que no hay valores nulos en Presupuesto
-        df_budget['Presupuesto'] = df_budget['Presupuesto'].fillna(0.0)
-        fig = px.bar(
-            df_budget,
-            x='Categoría',
+    # Obtener y mostrar el histórico
+    historico = get_budget_history()
+    if historico:
+        # Convertir a DataFrame para mejor visualización
+        df_hist = pd.DataFrame(historico, columns=['Categoría', 'Fecha', 'Presupuesto'])
+        df_hist['Fecha'] = pd.to_datetime(df_hist['Fecha']).dt.strftime('%Y-%m')
+
+        # Crear gráfico de línea temporal
+        fig = px.line(
+            df_hist,
+            x='Fecha',
             y='Presupuesto',
-            title='Presupuesto Mensual por Categoría',
-            color='Categoría'
+            color='Categoría',
+            title='Evolución de Presupuestos por Categoría',
+            markers=True
         )
         st.plotly_chart(fig)
+
+        # Mostrar tabla de histórico
+        st.write("### Detalle del Histórico")
+        st.dataframe(df_hist.sort_values(['Categoría', 'Fecha'], ascending=[True, False]))

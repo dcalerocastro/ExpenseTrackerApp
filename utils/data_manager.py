@@ -1,6 +1,6 @@
 from datetime import datetime
 import traceback
-from .database import SessionLocal, Transaction, Category, init_db
+from .database import SessionLocal, Transaction, Category, BudgetHistory, init_db
 import pandas as pd
 
 def ensure_data_exists():
@@ -25,7 +25,17 @@ def ensure_data_exists():
                 "Sin Categorizar"
             ]
             for cat in default_categories:
-                db.add(Category(categoria=cat, presupuesto=0.0))
+                nueva_categoria = Category(categoria=cat, presupuesto=0.0)
+                db.add(nueva_categoria)
+                db.flush()  # Para obtener el ID
+
+                # Agregar primer registro histórico
+                hist = BudgetHistory(
+                    category_id=nueva_categoria.id,
+                    fecha=datetime.now(),
+                    monto=0.0
+                )
+                db.add(hist)
             db.commit()
             print("Categorías por defecto creadas")
     except Exception as e:
@@ -34,26 +44,54 @@ def ensure_data_exists():
     finally:
         db.close()
 
-def load_categories_with_budget():
-    """Carga todas las categorías con sus presupuestos"""
+def load_categories_with_budget(fecha: datetime = None):
+    """Carga todas las categorías con sus presupuestos para una fecha específica"""
     ensure_data_exists()
+    if fecha is None:
+        fecha = datetime.now()
+
     db = SessionLocal()
     try:
+        categories_with_budget = []
         categories = db.query(Category).all()
-        return [(cat.categoria, cat.presupuesto) for cat in categories]
+
+        for cat in categories:
+            # Obtener el presupuesto más reciente antes de la fecha dada
+            hist = db.query(BudgetHistory)\
+                    .filter(BudgetHistory.category_id == cat.id,
+                           BudgetHistory.fecha <= fecha)\
+                    .order_by(BudgetHistory.fecha.desc())\
+                    .first()
+
+            budget = hist.monto if hist else 0.0
+            categories_with_budget.append((cat.categoria, budget))
+
+        return categories_with_budget
     except Exception as e:
         print(f"Error cargando categorías: {str(e)}")
         return []
     finally:
         db.close()
 
-def update_category_budget(categoria: str, presupuesto: float):
-    """Actualiza el presupuesto de una categoría"""
+def update_category_budget(categoria: str, presupuesto: float, fecha: datetime = None):
+    """Actualiza el presupuesto de una categoría y guarda el histórico"""
+    if fecha is None:
+        fecha = datetime.now()
+
     db = SessionLocal()
     try:
         category = db.query(Category).filter(Category.categoria == categoria).first()
         if category:
+            # Actualizar presupuesto actual
             category.presupuesto = presupuesto
+
+            # Agregar registro histórico
+            hist = BudgetHistory(
+                category_id=category.id,
+                fecha=fecha,
+                monto=presupuesto
+            )
+            db.add(hist)
             db.commit()
             return True
         return False
@@ -61,6 +99,29 @@ def update_category_budget(categoria: str, presupuesto: float):
         print(f"Error actualizando presupuesto: {str(e)}")
         db.rollback()
         return False
+    finally:
+        db.close()
+
+def get_budget_history(categoria: str = None):
+    """Obtiene el histórico de presupuestos para una o todas las categorías"""
+    db = SessionLocal()
+    try:
+        query = db.query(
+            Category.categoria,
+            BudgetHistory.fecha,
+            BudgetHistory.monto
+        ).join(BudgetHistory)
+
+        if categoria:
+            query = query.filter(Category.categoria == categoria)
+
+        query = query.order_by(Category.categoria, BudgetHistory.fecha.desc())
+
+        results = query.all()
+        return [(r.categoria, r.fecha, r.monto) for r in results]
+    except Exception as e:
+        print(f"Error obteniendo histórico: {str(e)}")
+        return []
     finally:
         db.close()
 
