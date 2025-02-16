@@ -451,6 +451,7 @@ elif page == "Gestionar Presupuestos":
 
                 if updated_budget and updated_notes:
                     st.success("✅ Presupuesto y notas actualizados")
-                    st.rerun()  # Recargar para mostrar los cambios
+                    # Forzar la recarga de la página para actualizar los totales
+                    st.rerun()
                 else:
                     st.error("❌ Error al actualizar los datos")
