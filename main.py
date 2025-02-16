@@ -63,9 +63,9 @@ if page == "Dashboard":
                 options=list(range(1, 13)),
                 index=datetime.now().month - 1,
                 format_func=lambda x: ['Enero', 'Febrero', 'Marzo', 'Abril', 
-                                    'Mayo', 'Junio', 'Julio', 'Agosto',
-                                    'Septiembre', 'Octubre', 'Noviembre', 
-                                    'Diciembre'][x-1],
+                                        'Mayo', 'Junio', 'Julio', 'Agosto',
+                                        'Septiembre', 'Octubre', 'Noviembre', 
+                                        'Diciembre'][x-1],
                 key="dashboard_month"
             )
 
@@ -112,17 +112,22 @@ if page == "Dashboard":
         # Preparar datos para el gráfico
         real_by_cat = filtered_df[filtered_df['tipo'] == 'real'].groupby('categoria')['monto'].sum()
 
-        # Convertir presupuestos a Series para facilitar la combinación
-        proy_by_cat = pd.Series({
-            cat: float(presup if presup is not None else 0.0)
-            for cat, presup, _ in categories_with_budget
-        }, name='monto')
+        # Convertir presupuestos a diccionario
+        presupuestos = {cat: float(presup if presup is not None else 0.0) 
+                       for cat, presup, _ in categories_with_budget}
 
-        # Combinar datos
-        compare_df = pd.DataFrame({
-            'Real': real_by_cat,
-            'Proyectado': proy_by_cat
-        }).fillna(0).reset_index()
+        # Crear DataFrame con todas las categorías
+        all_categories = sorted(set(list(real_by_cat.index) + list(presupuestos.keys())))
+
+        compare_data = []
+        for cat in all_categories:
+            compare_data.append({
+                'categoria': cat,
+                'Real': real_by_cat.get(cat, 0.0),
+                'Proyectado': presupuestos.get(cat, 0.0)
+            })
+
+        compare_df = pd.DataFrame(compare_data)
 
         # Convertir de formato ancho a largo para el gráfico
         compare_df_long = pd.melt(
@@ -368,9 +373,9 @@ elif page == "Gestionar Presupuestos":
             options=list(range(1, 13)),
             index=datetime.now().month - 1,
             format_func=lambda x: ['Enero', 'Febrero', 'Marzo', 'Abril', 
-                                'Mayo', 'Junio', 'Julio', 'Agosto',
-                                'Septiembre', 'Octubre', 'Noviembre', 
-                                'Diciembre'][x-1]
+                                    'Mayo', 'Junio', 'Julio', 'Agosto',
+                                    'Septiembre', 'Octubre', 'Noviembre', 
+                                    'Diciembre'][x-1]
         )
 
     # Crear fecha del primer día del mes seleccionado
