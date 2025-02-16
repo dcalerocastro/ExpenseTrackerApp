@@ -1,4 +1,3 @@
-<replit_final_file>
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -31,7 +30,7 @@ def update_transactions():
     st.session_state.transactions = load_transactions(user_id=st.session_state.user_id)
     print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
 
-# Función refresh_page antes de las definiciones de páginas
+# Función refresh_page
 def refresh_page():
     """Función para refrescar solo los estados de la página que necesitan actualización"""
     # Guardar los estados que queremos preservar
@@ -39,7 +38,7 @@ def refresh_page():
     username = st.session_state.username
     synced_transactions = st.session_state.synced_transactions
 
-    # Guardar la página actual en un estado separado
+    # Guardar la página actual
     if 'nav_radio' in st.session_state:
         st.session_state.current_page = st.session_state.nav_radio
 
