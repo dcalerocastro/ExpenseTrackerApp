@@ -24,6 +24,8 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    reset_token = Column(String, nullable=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
 
     # Relaciones
     email_accounts = relationship("EmailAccount", back_populates="user", cascade="all, delete-orphan")
@@ -161,6 +163,7 @@ def migrate_csv_to_sql():
                   db.add(budget_entry)
                 except (KeyError, ValueError) as e:
                     print(f"Error processing row in budget_history.csv: {row}, Error: {e}")
+
 
 
         db.commit()

@@ -19,6 +19,7 @@ from utils.database import init_db
 from utils.email_manager import get_email_accounts, save_email_account, decrypt_password, update_last_sync, delete_email_account, update_email_account
 from sqlalchemy.orm import Session
 from utils.database import get_db, Transaction, SessionLocal # Assuming these are defined elsewhere
+from utils.password_reset import initiate_password_reset, reset_password
 
 # Initialize database tables
 print("Iniciando creación de tablas...")
@@ -167,24 +168,48 @@ def show_login_page():
     st.title("Welcome to GastoSync")
     st.markdown("Welcome to GastoSync", unsafe_allow_html=True)
 
-    with st.form("login_form"):
-        st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
-        email = st.text_input("", placeholder="you@example.com", label_visibility="collapsed")
+    # Tab para alternar entre login y recuperación
+    tab1, tab2 = st.tabs(["Login", "Recuperar Contraseña"])
 
-        st.markdown('<p class="input-label">Password</p>', unsafe_allow_html=True)
-        password = st.text_input("", type="password", placeholder="Enter your password", label_visibility="collapsed")
+    with tab1:
+        with st.form("login_form"):
+            st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
+            email = st.text_input("", placeholder="you@example.com", label_visibility="collapsed")
 
-        submit = st.form_submit_button("Login")
+            st.markdown('<p class="input-label">Password</p>', unsafe_allow_html=True)
+            password = st.text_input("", type="password", placeholder="Enter your password", label_visibility="collapsed")
 
-        if submit:
-            success, message, user = validate_login(email, password)
-            if success:
-                st.session_state.user_id = user.id
-                st.session_state.username = user.username
-                st.success(f"¡Bienvenido, {user.username}!")
-                st.rerun()
-            else:
-                st.error(message)
+            submit = st.form_submit_button("Login")
+
+            if submit:
+                success, message, user = validate_login(email, password)
+                if success:
+                    st.session_state.user_id = user.id
+                    st.session_state.username = user.username
+                    st.success(f"¡Bienvenido, {user.username}!")
+                    st.rerun()
+                else:
+                    st.error(message)
+
+    with tab2:
+        with st.form("reset_password_form"):
+            st.markdown("### Recuperar Contraseña")
+            st.write("Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecer tu contraseña.")
+
+            reset_email = st.text_input(
+                "Email",
+                placeholder="you@example.com"
+            )
+
+            if st.form_submit_button("Enviar Instrucciones"):
+                if reset_email:
+                    success, message = initiate_password_reset(reset_email)
+                    if success:
+                        st.success(message)
+                    else:
+                        st.error(message)
+                else:
+                    st.error("Por favor, ingresa tu correo electrónico")
 
     st.markdown('<div class="center-text">', unsafe_allow_html=True)
     st.markdown("Don't have an account?")
@@ -872,3 +897,35 @@ elif page == "Sincronizar Correos":
                         st.session_state.synced_transactions.pop(idx)
                         st.success("Transacción descartada")
                         st.rerun()
+
+# Add reset password page logic
+if 'reset_token' in st.experimental_get_query_params():
+    token = st.experimental_get_query_params()['reset_token'][0]
+
+    st.markdown('<div class="auth-form">', unsafe_allow_html=True)
+    st.title("Restablecer Contraseña")
+
+    with st.form("new_password_form"):
+        new_password = st.text_input(
+            "Nueva Contraseña",
+            type="password"
+        )
+        confirm_password = st.text_input(
+            "Confirmar Nueva Contraseña",
+            type="password"
+        )
+
+        if st.form_submit_button("Actualizar Contraseña"):
+            if new_password != confirm_password:
+                st.error("Las contraseñas no coinciden")
+            else:
+                success, message = reset_password(token, new_password)
+                if success:
+                    st.success(message)
+                    st.info("Por favor, inicia sesión con tu nueva contraseña")
+                    # Limpiar el token de la URL
+                    st.experimental_set_query_params()
+                else:
+                    st.error(message)
+
+    st.markdown('</div>', unsafe_allow_html=True)
