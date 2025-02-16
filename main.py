@@ -1,3 +1,4 @@
+<replit_final_file>
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -37,18 +38,20 @@ def refresh_page():
     user_id = st.session_state.user_id
     username = st.session_state.username
     synced_transactions = st.session_state.synced_transactions
-    current_nav = st.session_state.nav_radio if 'nav_radio' in st.session_state else "🏠 Dashboard"
+
+    # Guardar la página actual en un estado separado
+    if 'nav_radio' in st.session_state:
+        st.session_state.current_page = st.session_state.nav_radio
 
     # Limpiar estados específicos que necesitan actualización
     for key in list(st.session_state.keys()):
-        if key not in ['user_id', 'username', 'synced_transactions', 'nav_radio']:
+        if key not in ['user_id', 'username', 'synced_transactions', 'current_page']:
             del st.session_state[key]
 
     # Restaurar estados preservados
     st.session_state.user_id = user_id
     st.session_state.username = username
     st.session_state.synced_transactions = synced_transactions
-    st.session_state.nav_radio = current_nav
 
     st.rerun()
 
@@ -240,6 +243,10 @@ if not st.session_state.user_id:
     st.stop()
 
 # Si hay usuario logueado, mostrar la aplicación normal
+# Inicializar el estado de la página actual si no existe
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "🏠 Dashboard"
+
 # Menú de navegación lateral
 with st.sidebar:
     st.title(f"Hola, {st.session_state.username}")
@@ -264,7 +271,8 @@ with st.sidebar:
         options=list(menu_options.keys()),
         format_func=lambda x: x,
         label_visibility="collapsed",
-        key="nav_radio"
+        key="nav_radio",
+        index=list(menu_options.keys()).index(st.session_state.current_page)
     )
 
     page = menu_options[selected]
