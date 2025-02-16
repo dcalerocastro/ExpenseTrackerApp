@@ -32,86 +32,104 @@ page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Cor
 if page == "Dashboard":
     st.title("Dashboard de Gastos")
 
-    # Date filters
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("Fecha inicial", 
-                                min(st.session_state.transactions['fecha']) if not st.session_state.transactions.empty else datetime.now())
-    with col2:
-        end_date = st.date_input("Fecha final", 
-                                max(st.session_state.transactions['fecha']) if not st.session_state.transactions.empty else datetime.now())
+    # Recargar transacciones cada vez que se accede al dashboard
+    st.session_state.transactions = load_transactions()
 
-    filtered_df = st.session_state.transactions[
-        (st.session_state.transactions['fecha'] >= pd.Timestamp(start_date)) &
-        (st.session_state.transactions['fecha'] <= pd.Timestamp(end_date))
-    ]
-
-    # Summary metrics
-    col1, col2, col3, col4 = st.columns(4)
-    real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
-    proy_gastos = filtered_df[filtered_df['tipo'] == 'proyectado']['monto'].sum()
-
-    with col1:
-        st.metric("Total Gastos Reales", f"S/. {real_gastos:.2f}")
-    with col2:
-        st.metric("Total Gastos Proyectados", f"S/. {proy_gastos:.2f}")
-    with col3:
-        st.metric("Total General", f"S/. {(real_gastos + proy_gastos):.2f}")
-    with col4:
-        st.metric("Número de Transacciones", len(filtered_df))
-
-    # Visualizations
-    col1, col2 = st.columns(2)
-
-    with col1:
-        # Pie chart by category
-        fig_pie = px.pie(filtered_df, 
-                        values='monto', 
-                        names='categoria',
-                        title='Distribución de Gastos por Categoría',
-                        color='tipo')
-        st.plotly_chart(fig_pie)
-
-    with col2:
-        # Time series of expenses
-        fig_line = go.Figure()
-
-        # Gastos reales
-        real_daily = filtered_df[filtered_df['tipo'] == 'real'].groupby('fecha')['monto'].sum().reset_index()
-        fig_line.add_trace(go.Scatter(x=real_daily['fecha'], y=real_daily['monto'],
-                                    name='Gastos Reales',
-                                    line=dict(color='blue')))
-
-        # Gastos proyectados
-        proy_daily = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('fecha')['monto'].sum().reset_index()
-        fig_line.add_trace(go.Scatter(x=proy_daily['fecha'], y=proy_daily['monto'],
-                                    name='Gastos Proyectados',
-                                    line=dict(color='red', dash='dash')))
-
-        fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
-        st.plotly_chart(fig_line)
-
-    # Transactions table
-    st.subheader("Listado de Transacciones")
-    if not filtered_df.empty:
-        # Formatear la fecha para mostrar
-        display_df = filtered_df.copy()
-        display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d')
-        # Ordenar por fecha más reciente
-        display_df = display_df.sort_values('fecha', ascending=False)
-        st.dataframe(display_df)
+    if st.session_state.transactions.empty:
+        st.info("No hay transacciones registradas aún.")
     else:
-        st.info("No hay transacciones para mostrar en el período seleccionado")
+        # Date filters
+        col1, col2 = st.columns(2)
+        with col1:
+            start_date = st.date_input("Fecha inicial", 
+                                   min(st.session_state.transactions['fecha'].dt.date))
+        with col2:
+            end_date = st.date_input("Fecha final", 
+                                   max(st.session_state.transactions['fecha'].dt.date))
 
-    # Export button
-    if st.button("Exportar Datos"):
-        csv = filtered_df.to_csv(index=False)
-        st.download_button(
-            label="Descargar CSV",
-            data=csv,
-            file_name="transacciones.csv",
-            mime="text/csv"
-        )
+        # Convertir start_date y end_date a datetime para comparación
+        start_datetime = pd.Timestamp(start_date)
+        end_datetime = pd.Timestamp(end_date)
+
+        filtered_df = st.session_state.transactions[
+            (st.session_state.transactions['fecha'] >= start_datetime) &
+            (st.session_state.transactions['fecha'] <= end_datetime)
+        ]
+
+        # Summary metrics
+        col1, col2, col3, col4 = st.columns(4)
+        real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
+        proy_gastos = filtered_df[filtered_df['tipo'] == 'proyectado']['monto'].sum()
+
+        with col1:
+            st.metric("Total Gastos Reales", f"S/. {real_gastos:.2f}")
+        with col2:
+            st.metric("Total Gastos Proyectados", f"S/. {proy_gastos:.2f}")
+        with col3:
+            st.metric("Total General", f"S/. {(real_gastos + proy_gastos):.2f}")
+        with col4:
+            st.metric("Número de Transacciones", len(filtered_df))
+
+        # Visualizations
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if not filtered_df.empty:
+                # Pie chart by category
+                fig_pie = px.pie(filtered_df, 
+                               values='monto', 
+                               names='categoria',
+                               title='Distribución de Gastos por Categoría',
+                               color='tipo')
+                st.plotly_chart(fig_pie)
+            else:
+                st.info("No hay datos para mostrar en el gráfico de categorías")
+
+        with col2:
+            if not filtered_df.empty:
+                # Time series of expenses
+                fig_line = go.Figure()
+
+                # Gastos reales
+                real_daily = filtered_df[filtered_df['tipo'] == 'real'].groupby('fecha')['monto'].sum().reset_index()
+                if not real_daily.empty:
+                    fig_line.add_trace(go.Scatter(x=real_daily['fecha'], y=real_daily['monto'],
+                                              name='Gastos Reales',
+                                              line=dict(color='blue')))
+
+                # Gastos proyectados
+                proy_daily = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('fecha')['monto'].sum().reset_index()
+                if not proy_daily.empty:
+                    fig_line.add_trace(go.Scatter(x=proy_daily['fecha'], y=proy_daily['monto'],
+                                              name='Gastos Proyectados',
+                                              line=dict(color='red', dash='dash')))
+
+                fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
+                st.plotly_chart(fig_line)
+            else:
+                st.info("No hay datos para mostrar en el gráfico temporal")
+
+        # Transactions table
+        st.subheader("Listado de Transacciones")
+        if not filtered_df.empty:
+            # Formatear la fecha para mostrar
+            display_df = filtered_df.copy()
+            display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d')
+            # Ordenar por fecha más reciente
+            display_df = display_df.sort_values('fecha', ascending=False)
+            st.dataframe(display_df)
+        else:
+            st.info("No hay transacciones para mostrar en el período seleccionado")
+
+        # Export button
+        if st.button("Exportar Datos"):
+            csv = filtered_df.to_csv(index=False)
+            st.download_button(
+                label="Descargar CSV",
+                data=csv,
+                file_name="transacciones.csv",
+                mime="text/csv"
+            )
 
 elif page == "Ingresar Gasto":
     st.title("Ingresar Nuevo Gasto")
@@ -138,7 +156,8 @@ elif page == "Ingresar Gasto":
                 'monto': monto,
                 'descripcion': descripcion,
                 'categoria': categoria,
-                'tipo': tipo
+                'tipo': tipo,
+                'moneda': 'PEN'
             }
             save_transaction(transaction)
             st.session_state.transactions = load_transactions()
