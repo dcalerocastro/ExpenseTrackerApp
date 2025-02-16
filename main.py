@@ -602,26 +602,30 @@ elif page == "Gestionar Presupuestos":
     total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
                       for _, presupuesto, _ in categories_with_budget)
 
-    # Crear DataFrame para el gráfico de barras
-    df_budget = pd.DataFrame([
-        {'Categoría': cat, 'Presupuesto': float(presup if presup is not None else 0.0)}
-        for cat, presup, _ in categories_with_budget
-    ])
+    # Crear DataFrame para el gráfico de barras con nombres de columnas correctos
+    if categories_with_budget:
+        df_budget = pd.DataFrame({
+            'categoria': [cat for cat, _, _ in categories_with_budget],
+            'presupuesto': [float(presup if presup is not None else 0.0) 
+                           for _, presup, _ in categories_with_budget]
+        })
 
-    # Gráfico de barras
-    fig = px.bar(
-        df_budget,
-        x='Categoría',
-        y='Presupuesto',
-        title='Presupuesto por Categoría',
-        labels={'Presupuesto': 'Monto (S/.)'}
-    )
-    fig.update_layout(
-        xaxis_tickangle=-45,
-        showlegend=False,
-        height=400
-    )
-    st.plotly_chart(fig)
+        # Gráfico de barras
+        fig = px.bar(
+            df_budget,
+            x='categoria',
+            y='presupuesto',
+            title='Presupuesto por Categoría',
+            labels={'categoria': 'Categoría', 'presupuesto': 'Monto (S/.)'}
+        )
+        fig.update_layout(
+            xaxis_tickangle=-45,
+            showlegend=False,
+            height=400
+        )
+        st.plotly_chart(fig)
+    else:
+        st.info("No hay categorías con presupuesto configuradas aún.")
 
     # Mostrar métricas de resumen
     col1, col2, col3 = st.columns(3)
