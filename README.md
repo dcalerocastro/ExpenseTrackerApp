@@ -1,5 +1,5 @@
 
-# Control de Gastos - Aplicación de Gestión Financiera Personal
+# GastoSync - Aplicación de Gestión Financiera Personal
 
 Una aplicación web moderna para el seguimiento y control de gastos personales, con sincronización automática de notificaciones bancarias BCP.
 

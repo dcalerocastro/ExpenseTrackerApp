@@ -60,7 +60,7 @@ def refresh_page():
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Control de Gastos",
+    page_title="GastoSync",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -164,7 +164,7 @@ if 'transactions' not in st.session_state:
 
 def show_login_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
-    st.title("Welcome to Finance App")
+    st.title("Welcome to GastoSync")
     st.markdown("Start your financial journey here", unsafe_allow_html=True)
 
     with st.form("login_form"):
