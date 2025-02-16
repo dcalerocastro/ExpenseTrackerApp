@@ -85,6 +85,13 @@ if page == "Dashboard":
         real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
         proy_gastos = filtered_df[filtered_df['tipo'] == 'proyectado']['monto'].sum()
 
+        # Debug info
+        print("\n=== Debug de Gastos ===")
+        print(f"Total transacciones: {len(filtered_df)}")
+        print(f"Tipos únicos: {filtered_df['tipo'].unique()}")
+        print(f"Gastos reales: {real_gastos}")
+        print(f"Gastos proyectados: {proy_gastos}")
+
         with col1:
             st.metric("Total Gastos Reales", f"S/. {real_gastos:.2f}")
         with col2:
@@ -135,9 +142,24 @@ if page == "Dashboard":
             # Formatear la fecha para mostrar
             display_df = filtered_df.copy()
             display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d %H:%M')
-            # Ordenar por fecha más reciente
+            # Ordenar por fecha más reciente y mostrar el tipo de transacción
             display_df = display_df.sort_values('fecha', ascending=False)
-            st.dataframe(display_df)
+            st.dataframe(
+                display_df,
+                column_order=['fecha', 'monto', 'descripcion', 'categoria', 'tipo', 'moneda'],
+                column_config={
+                    'fecha': 'Fecha',
+                    'monto': st.column_config.NumberColumn('Monto', format="S/. %.2f"),
+                    'descripcion': 'Descripción',
+                    'categoria': 'Categoría',
+                    'tipo': st.column_config.SelectboxColumn(
+                        'Tipo',
+                        options=['real', 'proyectado'],
+                        required=True
+                    ),
+                    'moneda': 'Moneda'
+                }
+            )
         else:
             st.info("No hay transacciones para mostrar en el período seleccionado")
 
