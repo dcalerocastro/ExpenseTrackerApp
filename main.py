@@ -165,7 +165,7 @@ if 'transactions' not in st.session_state:
 def show_login_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
     st.title("Welcome to GastoSync")
-    st.markdown("Start your financial journey here", unsafe_allow_html=True)
+    st.markdown("Welcome to GastoSync", unsafe_allow_html=True)
 
     with st.form("login_form"):
         st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
