@@ -1,3 +1,4 @@
+<replit_final_file>
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -23,6 +24,33 @@ try:
     print("Tablas creadas exitosamente")
 except Exception as e:
     print(f"Error al crear tablas: {str(e)}")
+
+# Función para actualizar las transacciones
+def update_transactions():
+    print("\n=== Actualizando transacciones ===")
+    st.session_state.transactions = load_transactions(user_id=st.session_state.user_id)
+    print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
+
+# Mover la función refresh_page antes de las definiciones de páginas
+def refresh_page():
+    """Función para refrescar solo los estados de la página que necesitan actualización"""
+    # Guardar los estados de autenticación
+    user_id = st.session_state.user_id
+    username = st.session_state.username
+    synced_transactions = st.session_state.synced_transactions
+
+    # Limpiar estados específicos que necesitan actualización
+    for key in list(st.session_state.keys()):
+        if key not in ['user_id', 'username', 'synced_transactions']:
+            del st.session_state[key]
+
+    # Restaurar estados de autenticación
+    st.session_state.user_id = user_id
+    st.session_state.username = username
+    st.session_state.synced_transactions = synced_transactions
+
+    st.rerun()
+
 
 # Configuración de la página
 st.set_page_config(
@@ -151,6 +179,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Inicializar estado de la sesión
+if 'categories' not in st.session_state:
+    st.session_state.categories = load_categories(user_id=st.session_state.user_id)
+if 'transactions' not in st.session_state:
+    update_transactions()
+
 def show_login_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
     st.title("Welcome to Finance App")
@@ -235,18 +269,6 @@ if not st.session_state.user_id:
     st.stop()
 
 # Si hay usuario logueado, mostrar la aplicación normal
-# Función para actualizar las transacciones
-def update_transactions():
-    print("\n=== Actualizando transacciones ===")
-    st.session_state.transactions = load_transactions(user_id=st.session_state.user_id)
-    print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
-
-# Inicializar estado de la sesión
-if 'categories' not in st.session_state:
-    st.session_state.categories = load_categories(user_id=st.session_state.user_id)
-if 'transactions' not in st.session_state:
-    update_transactions()
-
 # Menú de navegación lateral
 with st.sidebar:
     st.title(f"Hola, {st.session_state.username}")
@@ -514,8 +536,7 @@ elif page == "Gestionar Presupuestos":
 
                 if updated_budget and updated_notes:
                     st.success("✅ Presupuesto y notas actualizados")
-                    st.session_state.clear()  # Limpiar el estado para forzar recarga
-                    st.rerun()
+                    refresh_page()
                 else:
                     st.error("❌ Error al actualizar los datos")
 
