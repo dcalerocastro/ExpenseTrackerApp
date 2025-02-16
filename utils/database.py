@@ -88,6 +88,10 @@ class BudgetHistory(Base):
 # Crear las tablas
 def init_db():
     try:
+        print("Eliminando tablas existentes...")
+        Base.metadata.drop_all(bind=engine)
+        print("Tablas eliminadas")
+        
         print("Iniciando creación de tablas...")
         Base.metadata.create_all(bind=engine)
         print("Tablas creadas exitosamente")
