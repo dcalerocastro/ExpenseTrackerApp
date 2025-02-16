@@ -456,12 +456,7 @@ elif page == "Gestionar Presupuestos":
 
                 if updated_budget and updated_notes:
                     st.success("✅ Presupuesto y notas actualizados")
-                    # Forzar la recarga de los datos antes de rerun
-                    categories_with_budget = load_categories_with_budget(fecha_seleccionada)
-                    # Calcular el nuevo total
-                    total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
-                                   for _, presupuesto, _ in categories_with_budget)
-                    print(f"Nuevo total de presupuestos: {total_budget}")
+                    st.session_state.clear()  # Limpiar el estado para forzar recarga
                     st.rerun()
                 else:
                     st.error("❌ Error al actualizar los datos")

@@ -62,15 +62,22 @@ def load_categories_with_budget(fecha: datetime = None):
         print(f"Encontradas {len(categories)} categorías")
 
         for cat in categories:
-            # Obtener el presupuesto más reciente antes de la fecha dada
+            # Obtener el presupuesto más reciente antes o igual a la fecha dada
             hist = db.query(BudgetHistory)\
-                    .filter(BudgetHistory.category_id == cat.id,
-                           BudgetHistory.fecha <= fecha)\
-                    .order_by(BudgetHistory.fecha.desc())\
+                    .filter(
+                        BudgetHistory.category_id == cat.id,
+                        BudgetHistory.fecha <= fecha
+                    )\
+                    .order_by(BudgetHistory.fecha.desc(), BudgetHistory.id.desc())\
                     .first()
 
-            budget = hist.monto if hist else 0.0
-            print(f"Categoría: {cat.categoria}, Presupuesto: {budget}")
+            # Usar el presupuesto del histórico si existe, si no usar el de la categoría
+            budget = hist.monto if hist else cat.presupuesto
+            print(f"Categoría: {cat.categoria}")
+            print(f"  - Presupuesto actual: {cat.presupuesto}")
+            print(f"  - Presupuesto del histórico: {budget}")
+            print(f"  - ID del histórico: {hist.id if hist else 'No hay histórico'}")
+
             categories_with_budget.append((cat.categoria, budget, cat.notas))
 
         print(f"Presupuestos cargados: {categories_with_budget}")
@@ -128,10 +135,16 @@ def update_category_budget(categoria: str, presupuesto: float, fecha: datetime =
             # Hacer commit de ambos cambios
             db.commit()
 
+            # Verificar la actualización
+            db.refresh(category)
+            new_hist = db.query(BudgetHistory)\
+                .filter(BudgetHistory.category_id == category.id)\
+                .order_by(BudgetHistory.fecha.desc())\
+                .first()
+
             print("Presupuesto actualizado exitosamente")
-            # Verificar el presupuesto después de la actualización
-            updated_cat = db.query(Category).filter(Category.categoria == categoria).first()
-            print(f"Presupuesto verificado después de actualización: {updated_cat.presupuesto}")
+            print(f"Presupuesto en categoría: {category.presupuesto}")
+            print(f"Presupuesto en histórico: {new_hist.monto}")
             return True
 
         print("Categoría no encontrada")
