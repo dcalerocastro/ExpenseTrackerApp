@@ -16,8 +16,7 @@ from utils.auth import register_user, validate_login
 import os
 from utils.database import init_db
 # Add import for new functions
-from utils.email_manager import get_email_accounts, save_email_account, decrypt_password, update_last_sync
-
+from utils.email_manager import get_email_accounts, save_email_account, decrypt_password, update_last_sync, delete_email_account, update_email_account
 
 # Initialize database tables
 print("Iniciando creación de tablas...")
@@ -541,32 +540,79 @@ elif page == "Sincronizar Correos":
                 st.write(f"Última sincronización: {account.last_sync or 'Nunca'}")
                 st.write(f"Estado: {'Activa' if account.is_active else 'Inactiva'}")
 
-                # Botón para sincronizar esta cuenta específica
-                if st.button("Sincronizar Ahora", key=f"sync_{account.id}"):
-                    try:
-                        with st.spinner('Conectando con el servidor de correo...'):
-                            password = decrypt_password(account.encrypted_password)
-                            reader = EmailReader(account.email, password)
-                            transactions = reader.fetch_notifications(
-                                days_back=30,
-                                bank=account.bank_name
-                            )
+                col1, col2, col3 = st.columns(3)
 
-                            if transactions:
-                                st.success(f"Se encontraron {len(transactions)} notificaciones")
-                                # Agregar el banco a cada transacción
-                                for t in transactions:
-                                    t['banco'] = account.bank_name
-                                # Store transactions in session state
-                                if 'synced_transactions' not in st.session_state:
-                                    st.session_state.synced_transactions = []
-                                st.session_state.synced_transactions.extend(transactions)
-                                update_last_sync(account.id)
-                            else:
-                                st.warning("No se encontraron notificaciones en el período seleccionado")
+                # Botón para sincronizar
+                with col1:
+                    if st.button("🔄 Sincronizar", key=f"sync_{account.id}"):
+                        try:
+                            with st.spinner('Conectando con el servidor de correo...'):
+                                password = decrypt_password(account.encrypted_password)
+                                reader = EmailReader(account.email, password)
+                                transactions = reader.fetch_notifications(
+                                    days_back=30,
+                                    bank=account.bank_name
+                                )
 
-                    except Exception as e:
-                        st.error(f"Error al sincronizar: {str(e)}")
+                                if transactions:
+                                    st.success(f"Se encontraron {len(transactions)} notificaciones")
+                                    # Agregar el banco a cada transacción
+                                    for t in transactions:
+                                        t['banco'] = account.bank_name
+                                    # Store transactions in session state
+                                    if 'synced_transactions' not in st.session_state:
+                                        st.session_state.synced_transactions = []
+                                    st.session_state.synced_transactions.extend(transactions)
+                                    update_last_sync(account.id)
+                                else:
+                                    st.warning("No se encontraron notificaciones en el período seleccionado")
+
+                        except Exception as e:
+                            st.error(f"Error al sincronizar: {str(e)}")
+
+                # Botón para editar
+                with col2:
+                    if st.button("✏️ Editar", key=f"edit_{account.id}"):
+                        st.session_state[f"editing_{account.id}"] = True
+
+                # Botón para eliminar
+                with col3:
+                    if st.button("🗑️ Eliminar", key=f"delete_{account.id}"):
+                        if delete_email_account(account.id)[0]:
+                            st.success("Cuenta eliminada exitosamente")
+                            st.rerun()
+                        else:
+                            st.error("Error al eliminar la cuenta")
+
+                # Formulario de edición si está en modo edición
+                if f"editing_{account.id}" in st.session_state:
+                    with st.form(key=f"edit_form_{account.id}"):
+                        st.write("### Editar Cuenta")
+                        new_password = st.text_input(
+                            "Nueva Contraseña de Aplicación (dejar en blanco para mantener la actual)",
+                            type="password"
+                        )
+                        new_status = st.checkbox("Cuenta Activa", value=account.is_active)
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.form_submit_button("Guardar Cambios"):
+                                success, message = update_email_account(
+                                    account_id=account.id,
+                                    password=new_password if new_password else None,
+                                    is_active=new_status
+                                )
+                                if success:
+                                    del st.session_state[f"editing_{account.id}"]
+                                    st.success(message)
+                                    st.rerun()
+                                else:
+                                    st.error(message)
+
+                        with col2:
+                            if st.form_submit_button("Cancelar"):
+                                del st.session_state[f"editing_{account.id}"]
+                                st.rerun()
 
     # Formulario para agregar nueva cuenta
     st.divider()
