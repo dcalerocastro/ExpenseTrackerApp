@@ -48,46 +48,32 @@ if page == "Dashboard":
     if st.session_state.transactions.empty:
         st.info("No hay transacciones registradas aún.")
     else:
-        # Debug info
-        st.write(f"Total de transacciones cargadas: {len(st.session_state.transactions)}")
-
-        # Date filters
+        # Selector de mes y año
         col1, col2 = st.columns(2)
-
-        # Obtener el rango de fechas de las transacciones
-        min_date = st.session_state.transactions['fecha'].min().date()
-        max_date = st.session_state.transactions['fecha'].max().date()
-
         with col1:
-            start_date = st.date_input(
-                "Fecha inicial",
-                value=min_date,
-                min_value=min_date,
-                max_value=max_date
+            year = st.selectbox(
+                "Año",
+                options=sorted(st.session_state.transactions['fecha'].dt.year.unique()),
+                index=len(st.session_state.transactions['fecha'].dt.year.unique()) - 1,
+                key="dashboard_year"
             )
-
         with col2:
-            end_date = st.date_input(
-                "Fecha final",
-                value=max_date,
-                min_value=min_date,
-                max_value=max_date
+            month = st.selectbox(
+                "Mes",
+                options=list(range(1, 13)),
+                index=datetime.now().month - 1,
+                format_func=lambda x: ['Enero', 'Febrero', 'Marzo', 'Abril', 
+                                    'Mayo', 'Junio', 'Julio', 'Agosto',
+                                    'Septiembre', 'Octubre', 'Noviembre', 
+                                    'Diciembre'][x-1],
+                key="dashboard_month"
             )
 
-        # Convertir fechas a datetime con hora inicio y fin del día
-        start_datetime = datetime.combine(start_date, time.min)
-        end_datetime = datetime.combine(end_date, time.max)
-
-        # Debug de fechas
-        st.write(f"Filtrando desde: {start_datetime} hasta: {end_datetime}")
-
-        # Filtrar transacciones
+        # Filtrar transacciones por mes y año
         filtered_df = st.session_state.transactions[
-            (st.session_state.transactions['fecha'] >= start_datetime) &
-            (st.session_state.transactions['fecha'] <= end_datetime)
+            (st.session_state.transactions['fecha'].dt.year == year) &
+            (st.session_state.transactions['fecha'].dt.month == month)
         ]
-
-        st.write(f"Transacciones filtradas: {len(filtered_df)}")
 
         # Botón para recargar datos
         if st.button("↻ Recargar Datos"):
@@ -108,6 +94,41 @@ if page == "Dashboard":
         with col4:
             st.metric("Número de Transacciones", len(filtered_df))
 
+        # Gráfico de barras comparativo
+        st.subheader("Comparación por Categoría: Real vs Proyectado")
+
+        # Preparar datos para el gráfico
+        real_by_cat = filtered_df[filtered_df['tipo'] == 'real'].groupby('categoria')['monto'].sum()
+        proy_by_cat = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('categoria')['monto'].sum()
+
+        # Combinar datos
+        compare_df = pd.DataFrame({
+            'Real': real_by_cat,
+            'Proyectado': proy_by_cat
+        }).fillna(0).reset_index()
+
+        # Convertir de formato ancho a largo para el gráfico
+        compare_df_long = pd.melt(
+            compare_df, 
+            id_vars=['categoria'],
+            value_vars=['Real', 'Proyectado'],
+            var_name='Tipo',
+            value_name='Monto'
+        )
+
+        # Crear gráfico de barras
+        fig = px.bar(
+            compare_df_long,
+            x='categoria',
+            y='Monto',
+            color='Tipo',
+            title='Gastos Reales vs Proyectados por Categoría',
+            barmode='group',
+            labels={'categoria': 'Categoría', 'Monto': 'Monto (S/.)'}
+        )
+        fig.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig)
+
         # Transactions table
         st.subheader("Listado de Transacciones")
         if not filtered_df.empty:
@@ -120,47 +141,13 @@ if page == "Dashboard":
         else:
             st.info("No hay transacciones para mostrar en el período seleccionado")
 
-        # Visualizations
-        if not filtered_df.empty:
-            col1, col2 = st.columns(2)
-
-            with col1:
-                # Pie chart by category
-                fig_pie = px.pie(filtered_df, 
-                               values='monto', 
-                               names='categoria',
-                               title='Distribución de Gastos por Categoría',
-                               color='tipo')
-                st.plotly_chart(fig_pie)
-
-            with col2:
-                # Time series of expenses
-                fig_line = go.Figure()
-
-                # Gastos reales
-                real_daily = filtered_df[filtered_df['tipo'] == 'real'].groupby('fecha')['monto'].sum().reset_index()
-                if not real_daily.empty:
-                    fig_line.add_trace(go.Scatter(x=real_daily['fecha'], y=real_daily['monto'],
-                                                  name='Gastos Reales',
-                                                  line=dict(color='blue')))
-
-                # Gastos proyectados
-                proy_daily = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('fecha')['monto'].sum().reset_index()
-                if not proy_daily.empty:
-                    fig_line.add_trace(go.Scatter(x=proy_daily['fecha'], y=proy_daily['monto'],
-                                                  name='Gastos Proyectados',
-                                                  line=dict(color='red', dash='dash')))
-
-                fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
-                st.plotly_chart(fig_line)
-
         # Export button
         if st.button("Exportar Datos"):
             csv = filtered_df.to_csv(index=False)
             st.download_button(
                 label="Descargar CSV",
                 data=csv,
-                file_name="transacciones.csv",
+                file_name=f"transacciones_{year}_{month}.csv",
                 mime="text/csv"
             )
 
