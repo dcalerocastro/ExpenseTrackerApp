@@ -31,7 +31,6 @@ class User(Base):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# Definir los modelos existentes
 class Transaction(Base):
     __tablename__ = "transactions"
 
@@ -42,7 +41,7 @@ class Transaction(Base):
     categoria = Column(String, nullable=False)
     tipo = Column(String, nullable=False)  # 'real' o 'proyectado'
     moneda = Column(String, nullable=False, default='PEN')
-    user_id = Column(Integer, ForeignKey('users.id'))  # Añadir relación con usuario
+    user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", backref="transactions")
 
@@ -50,11 +49,11 @@ class Category(Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    categoria = Column(String, unique=True, nullable=False)
+    categoria = Column(String, nullable=False)
     notas = Column(Text, nullable=True)
     presupuesto = Column(Float, nullable=True)
     presupuestos = relationship("BudgetHistory", back_populates="category")
-    user_id = Column(Integer, ForeignKey('users.id'))  # Añadir relación con usuario
+    user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", backref="categories")
 

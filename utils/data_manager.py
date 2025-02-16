@@ -15,19 +15,19 @@ def ensure_data_exists():
         if db.query(Category).count() == 0:
             print("Inicializando categorías por defecto")
             default_categories = [
-                ("Gastos Corrientes", "Gastos regulares y frecuentes como suscripciones"),
-                ("Casa", "Gastos relacionados con el hogar, mantenimiento y mejoras"),
-                ("Servicios Básicos", "Luz, agua, gas, internet, teléfono"),
-                ("Transporte", "Gasolina, transporte público, mantenimiento de vehículos"),
-                ("Alimentación", "Comida, restaurantes, delivery"),
-                ("Salud", "Medicamentos, consultas médicas, seguros de salud"),
-                ("Entretenimiento", "Cine, streaming, salidas, hobbies"),
-                ("Sin Categorizar", "Gastos pendientes de categorizar")
+                ("Gastos Corrientes", "Gastos regulares y frecuentes como suscripciones", 100.0),
+                ("Casa", "Gastos relacionados con el hogar, mantenimiento y mejoras", 200.0),
+                ("Servicios Básicos", "Luz, agua, gas, internet, teléfono", 300.0),
+                ("Transporte", "Gasolina, transporte público, mantenimiento de vehículos", 150.0),
+                ("Alimentación", "Comida, restaurantes, delivery", 500.0),
+                ("Salud", "Medicamentos, consultas médicas, seguros de salud", 200.0),
+                ("Entretenimiento", "Cine, streaming, salidas, hobbies", 100.0),
+                ("Sin Categorizar", "Gastos pendientes de categorizar", 0.0)
             ]
-            for cat, nota in default_categories:
+            for cat, nota, presup in default_categories:
                 nueva_categoria = Category(
                     categoria=cat, 
-                    presupuesto=0.0,
+                    presupuesto=presup,
                     notas=nota
                 )
                 db.add(nueva_categoria)
@@ -37,7 +37,7 @@ def ensure_data_exists():
                 hist = BudgetHistory(
                     category_id=nueva_categoria.id,
                     fecha=datetime.now(),
-                    monto=0.0
+                    monto=presup
                 )
                 db.add(hist)
             db.commit()
@@ -73,11 +73,6 @@ def load_categories_with_budget(fecha: datetime = None):
 
             # Usar el presupuesto del histórico si existe, si no usar el de la categoría
             budget = hist.monto if hist else cat.presupuesto
-            print(f"Categoría: {cat.categoria}")
-            print(f"  - Presupuesto actual: {cat.presupuesto}")
-            print(f"  - Presupuesto del histórico: {budget}")
-            print(f"  - ID del histórico: {hist.id if hist else 'No hay histórico'}")
-
             categories_with_budget.append((cat.categoria, budget, cat.notas))
 
         print(f"Presupuestos cargados: {categories_with_budget}")
@@ -131,20 +126,10 @@ def update_category_budget(categoria: str, presupuesto: float, fecha: datetime =
                 monto=presupuesto
             )
             db.add(hist)
-
-            # Hacer commit de ambos cambios
             db.commit()
-
-            # Verificar la actualización
-            db.refresh(category)
-            new_hist = db.query(BudgetHistory)\
-                .filter(BudgetHistory.category_id == category.id)\
-                .order_by(BudgetHistory.fecha.desc())\
-                .first()
 
             print("Presupuesto actualizado exitosamente")
             print(f"Presupuesto en categoría: {category.presupuesto}")
-            print(f"Presupuesto en histórico: {new_hist.monto}")
             return True
 
         print("Categoría no encontrada")
