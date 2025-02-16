@@ -8,39 +8,29 @@ def migrate_csv_to_sql():
     """
     try:
         # Inicializar la base de datos
+        print("Iniciando migración de datos...")
         init_db()
         db = SessionLocal()
-        
-        # Migrar categorías
-        categories_df = pd.read_csv("data/categories.csv")
-        print(f"Migrando {len(categories_df)} categorías...")
-        
-        for _, row in categories_df.iterrows():
-            category = Category(categoria=row['categoria'])
-            db.merge(category)
-        
-        # Migrar transacciones
-        transactions_df = pd.read_csv("data/transactions.csv")
-        print(f"Migrando {len(transactions_df)} transacciones...")
-        
-        for _, row in transactions_df.iterrows():
-            transaction = Transaction(
-                fecha=pd.to_datetime(row['fecha']),
-                monto=float(row['monto']),
-                descripcion=str(row['descripcion']),
-                categoria=str(row['categoria']),
-                tipo=str(row['tipo'])
-            )
-            db.add(transaction)
-        
-        db.commit()
-        print("Migración completada exitosamente")
-        
+
+        try:
+            # Migrar transacciones desde la base de datos anterior
+            print("Migrando transacciones existentes...")
+            existing_transactions = db.query(Transaction).all()
+            for transaction in existing_transactions:
+                if not hasattr(transaction, 'moneda'):
+                    transaction.moneda = 'PEN'
+
+            db.commit()
+            print("Migración completada exitosamente")
+
+        except Exception as e:
+            print(f"Error durante la migración: {e}")
+            db.rollback()
+        finally:
+            db.close()
+
     except Exception as e:
-        print(f"Error durante la migración: {e}")
-        db.rollback()
-    finally:
-        db.close()
+        print(f"Error general durante la migración: {e}")
 
 if __name__ == "__main__":
     migrate_csv_to_sql()

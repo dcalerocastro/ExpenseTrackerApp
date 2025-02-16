@@ -221,6 +221,7 @@ elif page == "Sincronizar Correos":
                     with col2:
                         if st.button("💾 Guardar", key=f"save_{idx}"):
                             try:
+                                # Crear una copia de la transacción para no modificar el original
                                 save_data = {
                                     'fecha': transaction['fecha'],
                                     'monto': float(transaction['monto']),
@@ -230,14 +231,20 @@ elif page == "Sincronizar Correos":
                                     'moneda': transaction.get('moneda', 'PEN')
                                 }
 
+                                print(f"\n=== Guardando transacción {idx} ===")
+                                print(f"Datos a guardar: {save_data}")
+
                                 if save_transaction(save_data):
                                     # Remove saved transaction from session state
                                     st.session_state.synced_transactions.pop(idx)
+                                    # Recargar las transacciones para actualizar la vista
                                     st.session_state.transactions = load_transactions()
                                     st.success("¡Transacción guardada exitosamente!")
                                 else:
                                     st.error("Error: No se pudo guardar la transacción")
+
                             except Exception as e:
+                                print(f"Error guardando transacción: {str(e)}")
                                 st.error(f"Error inesperado: {str(e)}")
 
                         if st.button("❌ Descartar", key=f"discard_{idx}"):

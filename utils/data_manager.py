@@ -49,17 +49,18 @@ def load_transactions():
                 'monto': t.monto,
                 'descripcion': t.descripcion,
                 'categoria': t.categoria,
-                'tipo': t.tipo
+                'tipo': t.tipo,
+                'moneda': t.moneda
             } for t in transactions]
             df = pd.DataFrame(data)
             print(f"Transacciones cargadas: {len(df)} registros")
             return df
-        return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
+        return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo', 'moneda'])
 
     except Exception as e:
         print(f"Error cargando transacciones: {str(e)}")
         print(traceback.format_exc())
-        return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
+        return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo', 'moneda'])
     finally:
         db.close()
 
@@ -87,7 +88,8 @@ def save_transaction(transaction_data):
             monto=float(transaction_data['monto']),
             descripcion=str(transaction_data['descripcion']),
             categoria=str(transaction_data['categoria']),
-            tipo=str(transaction_data.get('tipo', 'real'))
+            tipo=str(transaction_data.get('tipo', 'real')),
+            moneda=str(transaction_data.get('moneda', 'PEN'))
         )
 
         print(f"Transacción preparada: {vars(new_transaction)}")

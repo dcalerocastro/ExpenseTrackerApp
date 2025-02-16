@@ -6,6 +6,7 @@ from datetime import datetime
 
 # Obtener la URL de la base de datos del entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
+print(f"Inicializando base de datos con URL: {DATABASE_URL}")
 
 # Crear el motor de la base de datos
 engine = create_engine(DATABASE_URL)
@@ -24,6 +25,7 @@ class Transaction(Base):
     descripcion = Column(String, nullable=False)
     categoria = Column(String, nullable=False)
     tipo = Column(String, nullable=False)  # 'real' o 'proyectado'
+    moneda = Column(String, nullable=False, default='PEN')  # Agregamos columna de moneda
 
 class Category(Base):
     __tablename__ = "categories"
@@ -33,7 +35,20 @@ class Category(Base):
 
 # Crear las tablas
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    try:
+        print("Iniciando creación de tablas...")
+        Base.metadata.create_all(bind=engine)
+        print("Tablas creadas exitosamente")
+
+        # Verificar las tablas creadas
+        inspector = MetaData()
+        inspector.reflect(bind=engine)
+        print("Tablas en la base de datos:")
+        for table in inspector.tables:
+            print(f"- {table}")
+    except Exception as e:
+        print(f"Error al crear tablas: {str(e)}")
+        raise e
 
 # Obtener una sesión de la base de datos
 def get_db():
@@ -74,7 +89,8 @@ def migrate_csv_to_sql():
                     monto=float(row['monto']),
                     descripcion=str(row['descripcion']),
                     categoria=str(row['categoria']),
-                    tipo=str(row['tipo'])
+                    tipo=str(row['tipo']),
+                    moneda = str(row.get('moneda', 'PEN')) # Handle missing moneda column
                 )
                 db.add(transaction)
 
