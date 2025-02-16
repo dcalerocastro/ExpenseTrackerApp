@@ -1,7 +1,10 @@
+
 [server]
 headless = true
+enableCORS = false
+enableXsrfProtection = false
 address = "0.0.0.0"
-port = 5000
+port = 8080
 
 [theme]
 primaryColor = "#00B894"
@@ -10,5 +13,5 @@ secondaryBackgroundColor = "#F0F2F6"
 textColor = "#262730"
 font = "sans serif"
 
-[ui]
-hideSidebarNav = true
+[browser]
+gatherUsageStats = false
