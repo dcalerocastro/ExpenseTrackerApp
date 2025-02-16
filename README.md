@@ -3,6 +3,8 @@
 
 Una aplicación web moderna para el seguimiento y control de gastos personales, con sincronización automática de notificaciones bancarias BCP.
 
+Pueden usarla en este link: https://gastosync.replit.app/
+
 ## 🚀 Características
 
 - 📊 Dashboard interactivo de gastos
