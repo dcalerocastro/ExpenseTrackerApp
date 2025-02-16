@@ -139,15 +139,15 @@ if page == "Dashboard":
                 real_daily = filtered_df[filtered_df['tipo'] == 'real'].groupby('fecha')['monto'].sum().reset_index()
                 if not real_daily.empty:
                     fig_line.add_trace(go.Scatter(x=real_daily['fecha'], y=real_daily['monto'],
-                                              name='Gastos Reales',
-                                              line=dict(color='blue')))
+                                                  name='Gastos Reales',
+                                                  line=dict(color='blue')))
 
                 # Gastos proyectados
                 proy_daily = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('fecha')['monto'].sum().reset_index()
                 if not proy_daily.empty:
                     fig_line.add_trace(go.Scatter(x=proy_daily['fecha'], y=proy_daily['monto'],
-                                              name='Gastos Proyectados',
-                                              line=dict(color='red', dash='dash')))
+                                                  name='Gastos Proyectados',
+                                                  line=dict(color='red', dash='dash')))
 
                 fig_line.update_layout(title='Gastos Diarios - Reales vs Proyectados')
                 st.plotly_chart(fig_line)
@@ -325,10 +325,31 @@ elif page == "Gestionar Categorías":
         st.write(f"- {category}")
 
 elif page == "Gestionar Presupuestos":
-    st.title("Gestionar Presupuestos por Categoría")
+    st.title("Gestionar Presupuestos Mensuales")
+
+    st.info("""
+    Aquí puedes configurar el presupuesto mensual para cada categoría.
+    Los presupuestos se renuevan cada mes y pueden ser diferentes mes a mes.
+    """)
 
     # Cargar categorías con sus presupuestos
     categories_with_budget = load_categories_with_budget()
+
+    # Calcular presupuesto total
+    total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
+                      for _, presupuesto in categories_with_budget)
+
+    # Mostrar métricas de resumen
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Presupuesto Total Mensual", f"S/. {total_budget:.2f}")
+    with col2:
+        st.metric("Promedio por Categoría", 
+                 f"S/. {(total_budget/len(categories_with_budget) if categories_with_budget else 0):.2f}")
+    with col3:
+        st.metric("Número de Categorías", len(categories_with_budget))
+
+    st.divider()
 
     # Mostrar formulario para cada categoría
     for categoria, presupuesto in categories_with_budget:
@@ -356,7 +377,7 @@ elif page == "Gestionar Presupuestos":
 
     # Mostrar resumen de presupuestos
     st.divider()
-    st.subheader("Resumen de Presupuestos")
+    st.subheader("Distribución de Presupuestos Mensuales")
 
     # Crear gráfico de barras para presupuestos
     if categories_with_budget:
@@ -367,7 +388,7 @@ elif page == "Gestionar Presupuestos":
             df_budget,
             x='Categoría',
             y='Presupuesto',
-            title='Presupuesto por Categoría',
+            title='Presupuesto Mensual por Categoría',
             color='Categoría'
         )
         st.plotly_chart(fig)
