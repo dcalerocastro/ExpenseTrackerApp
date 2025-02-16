@@ -364,6 +364,27 @@ elif page == "Gestionar Presupuestos":
     total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
                       for _, presupuesto, _ in categories_with_budget)
 
+    # Crear DataFrame para el gráfico de barras
+    df_budget = pd.DataFrame([
+        {'Categoría': cat, 'Presupuesto': float(presup if presup is not None else 0.0)}
+        for cat, presup, _ in categories_with_budget
+    ])
+
+    # Gráfico de barras
+    fig = px.bar(
+        df_budget,
+        x='Categoría',
+        y='Presupuesto',
+        title='Presupuesto por Categoría',
+        labels={'Presupuesto': 'Monto (S/.)'}
+    )
+    fig.update_layout(
+        xaxis_tickangle=-45,
+        showlegend=False,
+        height=400
+    )
+    st.plotly_chart(fig)
+
     # Mostrar métricas de resumen
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -378,7 +399,8 @@ elif page == "Gestionar Presupuestos":
 
     # Mostrar formulario para cada categoría
     for categoria, presupuesto, notas in categories_with_budget:
-        with st.expander(f"📊 {categoria}", expanded=True):
+        presupuesto_actual = float(presupuesto if presupuesto is not None else 0.0)
+        with st.expander(f"📊 {categoria} - S/. {presupuesto_actual:.2f}", expanded=True):
             col1, col2 = st.columns([2, 1])
 
             with col1:
@@ -398,7 +420,6 @@ elif page == "Gestionar Presupuestos":
 
             with col2:
                 # Campo de presupuesto
-                presupuesto_actual = float(presupuesto if presupuesto is not None else 0.0)
                 nuevo_presupuesto = st.number_input(
                     "Presupuesto mensual",
                     value=presupuesto_actual,
@@ -409,5 +430,6 @@ elif page == "Gestionar Presupuestos":
                 if st.button("💰 Actualizar Presupuesto", key=f"update_{categoria}"):
                     if update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada):
                         st.success("✅ Presupuesto actualizado")
+                        st.rerun()  # Recargar para mostrar los cambios
                     else:
                         st.error("❌ Error al actualizar el presupuesto")
