@@ -17,21 +17,23 @@ import os
 # Page config
 st.set_page_config(page_title="Seguimiento de Gastos", layout="wide")
 
+# Función para actualizar las transacciones
+def update_transactions():
+    print("\n=== Actualizando transacciones ===")
+    st.session_state.transactions = load_transactions()
+    print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
+
 # Initialize session state
 if 'categories' not in st.session_state:
     st.session_state.categories = load_categories()
 if 'transactions' not in st.session_state:
-    st.session_state.transactions = load_transactions()
+    update_transactions()
 if 'synced_transactions' not in st.session_state:
     st.session_state.synced_transactions = []
 
 # Sidebar navigation
 st.sidebar.title("Navegación")
 page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Correos", "Gestionar Categorías"])
-
-# Función para actualizar las transacciones
-def update_transactions():
-    st.session_state.transactions = load_transactions()
 
 if page == "Dashboard":
     st.title("Dashboard de Gastos")
@@ -42,6 +44,9 @@ if page == "Dashboard":
     if st.session_state.transactions.empty:
         st.info("No hay transacciones registradas aún.")
     else:
+        # Debug info
+        st.write(f"Total de transacciones cargadas: {len(st.session_state.transactions)}")
+
         # Date filters
         col1, col2 = st.columns(2)
         with col1:
@@ -60,9 +65,12 @@ if page == "Dashboard":
             (st.session_state.transactions['fecha'] <= end_datetime)
         ]
 
-        # Debug info
-        st.write(f"Total de transacciones cargadas: {len(st.session_state.transactions)}")
         st.write(f"Transacciones filtradas: {len(filtered_df)}")
+
+        # Botón para recargar datos
+        if st.button("↻ Recargar Datos"):
+            update_transactions()
+            st.rerun()
 
         # Summary metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -77,11 +85,6 @@ if page == "Dashboard":
             st.metric("Total General", f"S/. {(real_gastos + proy_gastos):.2f}")
         with col4:
             st.metric("Número de Transacciones", len(filtered_df))
-
-        # Botón para recargar datos
-        if st.button("↻ Recargar Datos"):
-            update_transactions()
-            st.experimental_rerun()
 
         # Transactions table
         st.subheader("Listado de Transacciones")
@@ -170,7 +173,7 @@ elif page == "Ingresar Gasto":
             if save_transaction(transaction):
                 update_transactions()
                 st.success("¡Gasto guardado exitosamente!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Error al guardar el gasto")
 
@@ -267,9 +270,9 @@ elif page == "Sincronizar Correos":
                                 if save_transaction(save_data):
                                     # Remove saved transaction from session state
                                     st.session_state.synced_transactions.pop(idx)
-                                    # Recargar las transacciones para actualizar la vista
-                                    st.session_state.transactions = load_transactions()
+                                    update_transactions()
                                     st.success("¡Transacción guardada exitosamente!")
+                                    st.rerun()
                                 else:
                                     st.error("Error: No se pudo guardar la transacción")
 
@@ -281,6 +284,7 @@ elif page == "Sincronizar Correos":
                             # Remove discarded transaction from session state
                             st.session_state.synced_transactions.pop(idx)
                             st.success("Transacción descartada")
+                            st.rerun()
 
 elif page == "Gestionar Categorías":
     st.title("Gestionar Categorías")
