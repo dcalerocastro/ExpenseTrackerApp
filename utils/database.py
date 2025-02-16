@@ -4,7 +4,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from cryptography.fernet import Fernet
 
 # Obtener la URL de la base de datos del entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -27,7 +26,9 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Nuevas relaciones
-    email_accounts = relationship("EmailAccount", back_populates="user")
+    email_accounts = relationship("EmailAccount", back_populates="user", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", backref="user", cascade="all, delete-orphan")
+    categories = relationship("Category", backref="user", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
