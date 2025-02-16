@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -32,6 +32,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     categoria = Column(String, unique=True, nullable=False)
+    notas = Column(Text, nullable=True)  # Nuevo campo para notas descriptivas
     presupuesto = Column(Float, nullable=True)  # Presupuesto actual
     presupuestos = relationship("BudgetHistory", back_populates="category")
 

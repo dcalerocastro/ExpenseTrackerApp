@@ -13,7 +13,8 @@ from utils.data_manager import (
     save_categories,
     load_categories_with_budget,
     update_category_budget,
-    get_budget_history
+    get_budget_history,
+    update_category_notes # Added import
 )
 import os
 
@@ -361,7 +362,7 @@ elif page == "Gestionar Presupuestos":
 
     # Calcular presupuesto total
     total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
-                      for _, presupuesto in categories_with_budget)
+                      for _, presupuesto, _ in categories_with_budget)
 
     # Mostrar métricas de resumen
     col1, col2, col3 = st.columns(3)
@@ -376,28 +377,40 @@ elif page == "Gestionar Presupuestos":
     st.divider()
 
     # Mostrar formulario para cada categoría
-    for categoria, presupuesto in categories_with_budget:
-        col1, col2, col3 = st.columns([3, 2, 1])
+    for categoria, presupuesto, notas in categories_with_budget:
+        with st.expander(f"📊 {categoria}", expanded=True):
+            col1, col2 = st.columns([2, 1])
 
-        with col1:
-            st.write(f"### {categoria}")
+            with col1:
+                # Mostrar y editar notas
+                new_notes = st.text_area(
+                    "Notas (describe qué incluye esta categoría)",
+                    value=notas if notas else "",
+                    key=f"notes_{categoria}",
+                    height=100
+                )
+                if new_notes != notas:
+                    if st.button("💾 Guardar Notas", key=f"save_notes_{categoria}"):
+                        if update_category_notes(categoria, new_notes):
+                            st.success("✅ Notas actualizadas")
+                        else:
+                            st.error("❌ Error al actualizar las notas")
 
-        with col2:
-            # Aseguramos que presupuesto sea un número
-            presupuesto_actual = float(presupuesto if presupuesto is not None else 0.0)
-            nuevo_presupuesto = st.number_input(
-                f"Presupuesto mensual para {categoria}",
-                value=presupuesto_actual,
-                step=10.0,
-                key=f"budget_{categoria}"
-            )
+            with col2:
+                # Campo de presupuesto
+                presupuesto_actual = float(presupuesto if presupuesto is not None else 0.0)
+                nuevo_presupuesto = st.number_input(
+                    "Presupuesto mensual",
+                    value=presupuesto_actual,
+                    step=10.0,
+                    key=f"budget_{categoria}"
+                )
 
-        with col3:
-            if st.button("Actualizar", key=f"update_{categoria}"):
-                if update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada):
-                    st.success(f"Presupuesto actualizado para {categoria}")
-                else:
-                    st.error("Error al actualizar el presupuesto")
+                if st.button("💰 Actualizar Presupuesto", key=f"update_{categoria}"):
+                    if update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada):
+                        st.success("✅ Presupuesto actualizado")
+                    else:
+                        st.error("❌ Error al actualizar el presupuesto")
 
     # Mostrar histórico
     st.divider()

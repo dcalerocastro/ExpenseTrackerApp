@@ -15,17 +15,21 @@ def ensure_data_exists():
         if db.query(Category).count() == 0:
             print("Inicializando categorías por defecto")
             default_categories = [
-                "Gastos Corrientes",
-                "Casa",
-                "Servicios Básicos",
-                "Transporte",
-                "Alimentación",
-                "Salud",
-                "Entretenimiento",
-                "Sin Categorizar"
+                ("Gastos Corrientes", "Gastos regulares y frecuentes como suscripciones"),
+                ("Casa", "Gastos relacionados con el hogar, mantenimiento y mejoras"),
+                ("Servicios Básicos", "Luz, agua, gas, internet, teléfono"),
+                ("Transporte", "Gasolina, transporte público, mantenimiento de vehículos"),
+                ("Alimentación", "Comida, restaurantes, delivery"),
+                ("Salud", "Medicamentos, consultas médicas, seguros de salud"),
+                ("Entretenimiento", "Cine, streaming, salidas, hobbies"),
+                ("Sin Categorizar", "Gastos pendientes de categorizar")
             ]
-            for cat in default_categories:
-                nueva_categoria = Category(categoria=cat, presupuesto=0.0)
+            for cat, nota in default_categories:
+                nueva_categoria = Category(
+                    categoria=cat, 
+                    presupuesto=0.0,
+                    notas=nota
+                )
                 db.add(nueva_categoria)
                 db.flush()  # Para obtener el ID
 
@@ -45,7 +49,7 @@ def ensure_data_exists():
         db.close()
 
 def load_categories_with_budget(fecha: datetime = None):
-    """Carga todas las categorías con sus presupuestos para una fecha específica"""
+    """Carga todas las categorías con sus presupuestos y notas para una fecha específica"""
     ensure_data_exists()
     if fecha is None:
         fecha = datetime.now()
@@ -64,12 +68,29 @@ def load_categories_with_budget(fecha: datetime = None):
                     .first()
 
             budget = hist.monto if hist else 0.0
-            categories_with_budget.append((cat.categoria, budget))
+            categories_with_budget.append((cat.categoria, budget, cat.notas))
 
         return categories_with_budget
     except Exception as e:
         print(f"Error cargando categorías: {str(e)}")
         return []
+    finally:
+        db.close()
+
+def update_category_notes(categoria: str, notas: str):
+    """Actualiza las notas de una categoría"""
+    db = SessionLocal()
+    try:
+        category = db.query(Category).filter(Category.categoria == categoria).first()
+        if category:
+            category.notas = notas
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error actualizando notas: {str(e)}")
+        db.rollback()
+        return False
     finally:
         db.close()
 
@@ -216,17 +237,19 @@ def save_categories(categories):
     """Guarda las categorías en la base de datos"""
     db = SessionLocal()
     try:
-        # Obtener las categorías existentes con sus presupuestos
-        existing_categories = {cat.categoria: cat.presupuesto for cat in db.query(Category).all()}
+        # Obtener las categorías existentes con sus presupuestos y notas
+        existing_categories = {cat.categoria: (cat.presupuesto, cat.notas) for cat in db.query(Category).all()}
 
         # Eliminar categorías existentes
         db.query(Category).delete()
 
-        # Agregar nuevas categorías manteniendo los presupuestos existentes
+        # Agregar nuevas categorías manteniendo los presupuestos y notas existentes
         for cat in categories:
+            presupuesto, notas = existing_categories.get(cat, (0.0, ""))
             db.add(Category(
                 categoria=cat,
-                presupuesto=existing_categories.get(cat, 0.0)
+                presupuesto=presupuesto,
+                notas=notas
             ))
 
         db.commit()
