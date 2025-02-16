@@ -31,8 +31,12 @@ def send_reset_email(email: str, reset_token: str) -> tuple[bool, str]:
     message["To"] = email
     message["Subject"] = "Recuperación de Contraseña - GastoSync"
 
+    # Obtener la URL base de Replit
+    replit_url = os.getenv('REPLIT_DB_URL', '').split('//')[1].split('.')[0]
+    base_url = f"https://{replit_url}.repl.co"
+
     # Crear el link de recuperación
-    reset_link = f"https://gastosync.replit.app/reset_password?token={reset_token}"
+    reset_link = f"{base_url}?reset_token={reset_token}"
 
     # Crear el contenido HTML del correo con mejor formato
     body = f"""

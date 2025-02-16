@@ -20,6 +20,7 @@ from utils.email_manager import get_email_accounts, save_email_account, decrypt_
 from sqlalchemy.orm import Session
 from utils.database import get_db, Transaction, SessionLocal # Assuming these are defined elsewhere
 from utils.password_reset import initiate_password_reset, reset_password
+import time
 
 # Initialize database tables
 print("Iniciando creación de tablas...")
@@ -261,13 +262,42 @@ def show_register_page():
 
 # Mostrar páginas de autenticación si no hay usuario logueado
 if not st.session_state.user_id:
-    if not hasattr(st.session_state, 'show_register'):
-        st.session_state.show_register = False
+    # Verificar si hay un token de recuperación en la URL
+    params = st.experimental_get_query_params()
+    reset_token = params.get("reset_token", [None])[0]
 
-    if st.session_state.show_register:
-        show_register_page()
+    if reset_token:
+        st.markdown('<div class="auth-form">', unsafe_allow_html=True)
+        st.title("Restablecer Contraseña")
+
+        with st.form("reset_password_form"):
+            st.write("Ingresa tu nueva contraseña")
+            new_password = st.text_input("Nueva Contraseña", type="password")
+            confirm_password = st.text_input("Confirmar Contraseña", type="password")
+
+            if st.form_submit_button("Cambiar Contraseña"):
+                if new_password != confirm_password:
+                    st.error("Las contraseñas no coinciden")
+                else:
+                    success, message = reset_password(reset_token, new_password)
+                    if success:
+                        st.success(message)
+                        st.info("Por favor, inicia sesión con tu nueva contraseña")
+                        # Limpiar el token de la URL
+                        st.experimental_set_query_params()
+                        time.sleep(2)
+                        st.rerun()
+                    else:
+                        st.error(message)
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        show_login_page()
+        if not hasattr(st.session_state, 'show_register'):
+            st.session_state.show_register = False
+
+        if st.session_state.show_register:
+            show_register_page()
+        else:
+            show_login_page()
     st.stop()
 
 # Si hay usuario logueado, mostrar la aplicación normal
