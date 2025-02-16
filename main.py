@@ -33,20 +33,22 @@ def update_transactions():
 # Función refresh_page antes de las definiciones de páginas
 def refresh_page():
     """Función para refrescar solo los estados de la página que necesitan actualización"""
-    # Guardar los estados de autenticación
+    # Guardar los estados que queremos preservar
     user_id = st.session_state.user_id
     username = st.session_state.username
     synced_transactions = st.session_state.synced_transactions
+    current_nav = st.session_state.nav_radio if 'nav_radio' in st.session_state else "🏠 Dashboard"
 
     # Limpiar estados específicos que necesitan actualización
     for key in list(st.session_state.keys()):
-        if key not in ['user_id', 'username', 'synced_transactions']:
+        if key not in ['user_id', 'username', 'synced_transactions', 'nav_radio']:
             del st.session_state[key]
 
-    # Restaurar estados de autenticación
+    # Restaurar estados preservados
     st.session_state.user_id = user_id
     st.session_state.username = username
     st.session_state.synced_transactions = synced_transactions
+    st.session_state.nav_radio = current_nav
 
     st.rerun()
 
