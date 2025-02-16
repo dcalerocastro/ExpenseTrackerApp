@@ -14,8 +14,7 @@ from utils.data_manager import (
 )
 from utils.auth import register_user, validate_login
 import os
-from utils.database import init_db, SessionLocal, User, get_password_hash
-from werkzeug.security import generate_password_hash, check_password_hash
+from utils.database import init_db
 
 # Initialize database tables
 print("Iniciando creación de tablas...")
@@ -31,7 +30,7 @@ def update_transactions():
     st.session_state.transactions = load_transactions(user_id=st.session_state.user_id)
     print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
 
-# Función refresh_page antes de las definiciones de páginas
+# Función refresh_page
 def refresh_page():
     """Función para refrescar solo los estados de la página que necesitan actualización"""
     # Guardar los estados que queremos preservar
@@ -39,7 +38,7 @@ def refresh_page():
     username = st.session_state.username
     synced_transactions = st.session_state.synced_transactions
 
-    # Guardar la página actual en un estado separado
+    # Guardar la página actual
     if 'nav_radio' in st.session_state:
         st.session_state.current_page = st.session_state.nav_radio
 
@@ -532,26 +531,9 @@ elif page == "Sincronizar Correos":
 
     # Formulario de configuración de Gmail
     with st.form("gmail_config"):
-        db = SessionLocal()
-        user = db.query(User).filter(User.id == st.session_state.user_id).first()
-        email = st.text_input("Correo Gmail", value=user.email if user else '')
-        if not user.app_password_hash:
-            password = st.text_input("Contraseña de aplicación", type="password")
-            if st.checkbox("Guardar contraseña de aplicación"):
-                hashed_password = generate_password_hash(password)
-                user.app_password_hash = hashed_password
-                db.commit()
-                db.close()
-                st.success("Contraseña de aplicación guardada!")
-        else:
-            password = "********"  # Placeholder para UI
-            if st.button("Cambiar contraseña de aplicación"):
-                user.app_password_hash = None
-                db.commit()
-                db.close()
-                st.rerun()
-        db.close()
-
+        email = st.text_input("Correo Gmail", value=os.getenv('EMAIL_USER', ''))
+        password = st.text_input("Contraseña de Aplicación", type="password", 
+                               help="Contraseña de 16 caracteres generada por Google")
 
         st.markdown("""
         ### ¿Cómo obtener la Contraseña de Aplicación?
