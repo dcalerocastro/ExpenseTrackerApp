@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, time
 import io
 from utils.email_parser import parse_email_content
 from utils.email_reader import EmailReader
@@ -49,17 +49,35 @@ if page == "Dashboard":
 
         # Date filters
         col1, col2 = st.columns(2)
+
+        # Obtener el rango de fechas de las transacciones
+        min_date = st.session_state.transactions['fecha'].min().date()
+        max_date = st.session_state.transactions['fecha'].max().date()
+
         with col1:
-            start_date = st.date_input("Fecha inicial", 
-                                   min(st.session_state.transactions['fecha'].dt.date))
+            start_date = st.date_input(
+                "Fecha inicial",
+                value=min_date,
+                min_value=min_date,
+                max_value=max_date
+            )
+
         with col2:
-            end_date = st.date_input("Fecha final", 
-                                   max(st.session_state.transactions['fecha'].dt.date))
+            end_date = st.date_input(
+                "Fecha final",
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date
+            )
 
-        # Convertir start_date y end_date a datetime para comparación
-        start_datetime = pd.Timestamp(start_date)
-        end_datetime = pd.Timestamp(end_date)
+        # Convertir fechas a datetime con hora inicio y fin del día
+        start_datetime = datetime.combine(start_date, time.min)
+        end_datetime = datetime.combine(end_date, time.max)
 
+        # Debug de fechas
+        st.write(f"Filtrando desde: {start_datetime} hasta: {end_datetime}")
+
+        # Filtrar transacciones
         filtered_df = st.session_state.transactions[
             (st.session_state.transactions['fecha'] >= start_datetime) &
             (st.session_state.transactions['fecha'] <= end_datetime)
@@ -91,7 +109,7 @@ if page == "Dashboard":
         if not filtered_df.empty:
             # Formatear la fecha para mostrar
             display_df = filtered_df.copy()
-            display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d')
+            display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d %H:%M')
             # Ordenar por fecha más reciente
             display_df = display_df.sort_values('fecha', ascending=False)
             st.dataframe(display_df)
