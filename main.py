@@ -217,21 +217,27 @@ elif page == "Sincronizar Correos":
                                                 'monto': float(transaction['monto']),
                                                 'descripcion': transaction['descripcion'],
                                                 'categoria': transaction['categoria'],
-                                                'tipo': 'real'
+                                                'tipo': 'real',
+                                                'moneda': transaction.get('moneda', 'PEN')
                                             }
                                             print(f"Datos a guardar: {save_data}")
 
-                                            # Intentar guardar
                                             if save_transaction(save_data):
                                                 st.session_state.transactions = load_transactions()
-                                                st.success(f"¡Transacción guardada!")
+                                                st.success("¡Transacción guardada exitosamente!")
+
+                                                # Verificar si la transacción se guardó correctamente
+                                                latest_transactions = load_transactions()
+                                                print(f"Total de transacciones después de guardar: {len(latest_transactions)}")
+
+                                                # Recargar la página para actualizar la vista
                                                 st.rerun()
                                             else:
-                                                st.error("Error al guardar la transacción")
+                                                st.error("Error: No se pudo guardar la transacción. Revise los logs para más detalles.")
 
                                         except Exception as e:
                                             print(f"Error guardando transacción {idx}: {str(e)}")
-                                            st.error(f"Error: {str(e)}")
+                                            st.error(f"Error inesperado: {str(e)}")
 
                                     if st.button("❌ Descartar", key=f"discard_{idx}"):
                                         st.info("Transacción descartada")
