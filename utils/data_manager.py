@@ -25,12 +25,42 @@ def ensure_data_exists():
                 "Sin Categorizar"
             ]
             for cat in default_categories:
-                db.add(Category(categoria=cat))
+                db.add(Category(categoria=cat, presupuesto=0.0))
             db.commit()
             print("Categorías por defecto creadas")
     except Exception as e:
         print(f"Error verificando datos: {str(e)}")
         db.rollback()
+    finally:
+        db.close()
+
+def load_categories_with_budget():
+    """Carga todas las categorías con sus presupuestos"""
+    ensure_data_exists()
+    db = SessionLocal()
+    try:
+        categories = db.query(Category).all()
+        return [(cat.categoria, cat.presupuesto) for cat in categories]
+    except Exception as e:
+        print(f"Error cargando categorías: {str(e)}")
+        return []
+    finally:
+        db.close()
+
+def update_category_budget(categoria: str, presupuesto: float):
+    """Actualiza el presupuesto de una categoría"""
+    db = SessionLocal()
+    try:
+        category = db.query(Category).filter(Category.categoria == categoria).first()
+        if category:
+            category.presupuesto = presupuesto
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"Error actualizando presupuesto: {str(e)}")
+        db.rollback()
+        return False
     finally:
         db.close()
 
@@ -98,13 +128,6 @@ def save_transaction(transaction_data):
         db.add(new_transaction)
         db.commit()
         print("Transacción guardada exitosamente")
-
-        # Verificar inmediatamente después del guardado
-        saved_transactions = db.query(Transaction).all()
-        print(f"Verificación inmediata - Registros en BD: {len(saved_transactions)}")
-        print("Últimas 5 transacciones:")
-        for t in saved_transactions[-5:]:
-            print(f"{t.fecha}: {t.descripcion} - {t.monto}")
         return True
 
     except Exception as e:
@@ -132,12 +155,18 @@ def save_categories(categories):
     """Guarda las categorías en la base de datos"""
     db = SessionLocal()
     try:
+        # Obtener las categorías existentes con sus presupuestos
+        existing_categories = {cat.categoria: cat.presupuesto for cat in db.query(Category).all()}
+
         # Eliminar categorías existentes
         db.query(Category).delete()
 
-        # Agregar nuevas categorías
+        # Agregar nuevas categorías manteniendo los presupuestos existentes
         for cat in categories:
-            db.add(Category(categoria=cat))
+            db.add(Category(
+                categoria=cat,
+                presupuesto=existing_categories.get(cat, 0.0)
+            ))
 
         db.commit()
         return True

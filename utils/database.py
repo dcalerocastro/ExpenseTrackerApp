@@ -25,13 +25,14 @@ class Transaction(Base):
     descripcion = Column(String, nullable=False)
     categoria = Column(String, nullable=False)
     tipo = Column(String, nullable=False)  # 'real' o 'proyectado'
-    moneda = Column(String, nullable=False, default='PEN')  # Agregamos columna de moneda
+    moneda = Column(String, nullable=False, default='PEN')
 
 class Category(Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
     categoria = Column(String, unique=True, nullable=False)
+    presupuesto = Column(Float, nullable=True)  # Nuevo campo para presupuesto
 
 # Crear las tablas
 def init_db():

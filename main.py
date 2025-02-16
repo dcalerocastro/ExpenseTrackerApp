@@ -10,7 +10,9 @@ from utils.data_manager import (
     load_transactions,
     save_transaction,
     load_categories,
-    save_categories
+    save_categories,
+    load_categories_with_budget,
+    update_category_budget
 )
 import os
 
@@ -33,7 +35,7 @@ if 'synced_transactions' not in st.session_state:
 
 # Sidebar navigation
 st.sidebar.title("Navegación")
-page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Correos", "Gestionar Categorías"])
+page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Correos", "Gestionar Categorías", "Gestionar Presupuestos"])
 
 if page == "Dashboard":
     st.title("Dashboard de Gastos")
@@ -321,3 +323,47 @@ elif page == "Gestionar Categorías":
     st.subheader("Categorías Actuales")
     for category in st.session_state.categories:
         st.write(f"- {category}")
+
+elif page == "Gestionar Presupuestos":
+    st.title("Gestionar Presupuestos por Categoría")
+
+    # Cargar categorías con sus presupuestos
+    categories_with_budget = load_categories_with_budget()
+
+    # Mostrar formulario para cada categoría
+    for categoria, presupuesto in categories_with_budget:
+        col1, col2, col3 = st.columns([3, 2, 1])
+
+        with col1:
+            st.write(f"### {categoria}")
+
+        with col2:
+            nuevo_presupuesto = st.number_input(
+                f"Presupuesto mensual para {categoria}",
+                value=float(presupuesto),
+                step=10.0,
+                key=f"budget_{categoria}"
+            )
+
+        with col3:
+            if st.button("Actualizar", key=f"update_{categoria}"):
+                if update_category_budget(categoria, nuevo_presupuesto):
+                    st.success(f"Presupuesto actualizado para {categoria}")
+                else:
+                    st.error("Error al actualizar el presupuesto")
+
+    # Mostrar resumen de presupuestos
+    st.divider()
+    st.subheader("Resumen de Presupuestos")
+
+    # Crear gráfico de barras para presupuestos
+    if categories_with_budget:
+        df_budget = pd.DataFrame(categories_with_budget, columns=['Categoría', 'Presupuesto'])
+        fig = px.bar(
+            df_budget,
+            x='Categoría',
+            y='Presupuesto',
+            title='Presupuesto por Categoría',
+            color='Categoría'
+        )
+        st.plotly_chart(fig)
