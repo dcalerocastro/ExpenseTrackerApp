@@ -1,107 +1,127 @@
-import pandas as pd
-import os
 from datetime import datetime
 import traceback
+from .database import SessionLocal, Transaction, Category, init_db
+import pandas as pd
 
-# Constants
-TRANSACTIONS_FILE = "data/transactions.csv"
-CATEGORIES_FILE = "data/categories.csv"
+def ensure_data_exists():
+    """Asegura que la base de datos está inicializada con las categorías por defecto"""
+    print("\n--- Verificando base de datos ---")
+    db = SessionLocal()
+    try:
+        # Inicializar la base de datos si no existe
+        init_db()
 
-def ensure_data_files():
-    """Ensure data files exist with correct structure"""
-    print("\n--- Verificando archivos de datos ---")
-    os.makedirs("data", exist_ok=True)
-
-    if not os.path.exists(TRANSACTIONS_FILE):
-        print(f"Creando archivo de transacciones: {TRANSACTIONS_FILE}")
-        pd.DataFrame(columns=[
-            'fecha',
-            'monto',
-            'descripcion',
-            'categoria',
-            'tipo'
-        ]).to_csv(TRANSACTIONS_FILE, index=False)
-    else:
-        print(f"Archivo de transacciones existe: {TRANSACTIONS_FILE}")
-
-    if not os.path.exists(CATEGORIES_FILE):
-        print(f"Creando archivo de categorías: {CATEGORIES_FILE}")
-        default_categories = [
-            "Gastos Corrientes",
-            "Casa",
-            "Servicios Básicos",
-            "Transporte",
-            "Alimentación",
-            "Salud",
-            "Entretenimiento",
-            "Sin Categorizar"
-        ]
-        pd.DataFrame(default_categories, columns=['categoria']).to_csv(CATEGORIES_FILE, index=False)
-    else:
-        print(f"Archivo de categorías existe: {CATEGORIES_FILE}")
+        # Verificar si hay categorías
+        if db.query(Category).count() == 0:
+            print("Inicializando categorías por defecto")
+            default_categories = [
+                "Gastos Corrientes",
+                "Casa",
+                "Servicios Básicos",
+                "Transporte",
+                "Alimentación",
+                "Salud",
+                "Entretenimiento",
+                "Sin Categorizar"
+            ]
+            for cat in default_categories:
+                db.add(Category(categoria=cat))
+            db.commit()
+            print("Categorías por defecto creadas")
+    except Exception as e:
+        print(f"Error verificando datos: {str(e)}")
+        db.rollback()
+    finally:
+        db.close()
 
 def load_transactions():
-    """Load transactions from CSV file"""
-    ensure_data_files()
+    """Carga todas las transacciones de la base de datos"""
+    ensure_data_exists()
+    db = SessionLocal()
     try:
         print("\n--- Cargando transacciones ---")
-        df = pd.read_csv(TRANSACTIONS_FILE)
-        print(f"Archivo leído exitosamente: {len(df)} registros")
-        if len(df) > 0:
-            df['fecha'] = pd.to_datetime(df['fecha'])
-            print("Fechas convertidas a datetime")
-        return df
+        transactions = db.query(Transaction).all()
+
+        # Convertir a DataFrame para mantener compatibilidad con el código existente
+        if transactions:
+            data = [{
+                'fecha': t.fecha,
+                'monto': t.monto,
+                'descripcion': t.descripcion,
+                'categoria': t.categoria,
+                'tipo': t.tipo
+            } for t in transactions]
+            df = pd.DataFrame(data)
+            print(f"Transacciones cargadas: {len(df)} registros")
+            return df
+        return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
+
     except Exception as e:
         print(f"Error cargando transacciones: {str(e)}")
         print(traceback.format_exc())
         return pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
+    finally:
+        db.close()
 
-def save_transaction(transaction):
-    """Save a new transaction to CSV file"""
+def save_transaction(transaction_data):
+    """Guarda una nueva transacción en la base de datos"""
+    db = SessionLocal()
     try:
-        print("\n--- Iniciando guardado de transacción ---")
-        print(f"Datos recibidos: {transaction}")
-        
-        ensure_data_files()
+        print("\n=== INICIANDO GUARDADO DE TRANSACCIÓN ===")
+        print(f"Datos recibidos: {transaction_data}")
 
-        # Formatear transacción asegurando tipos de datos
-        formatted_transaction = {
-            'fecha': pd.to_datetime(transaction['fecha']).strftime('%Y-%m-%d'),
-            'monto': float(transaction['monto']),
-            'descripcion': str(transaction['descripcion']).strip(),
-            'categoria': str(transaction.get('categoria', 'Sin Categorizar')),
-            'tipo': str(transaction.get('tipo', 'real'))
-        }
-        print(f"Datos formateados: {formatted_transaction}")
+        # Crear nueva transacción
+        new_transaction = Transaction(
+            fecha=pd.to_datetime(transaction_data['fecha']),
+            monto=float(transaction_data['monto']),
+            descripcion=str(transaction_data['descripcion']),
+            categoria=str(transaction_data['categoria']),
+            tipo=str(transaction_data.get('tipo', 'real'))
+        )
 
-        # Cargar CSV existente o crear nuevo
-        try:
-            df = pd.read_csv(TRANSACTIONS_FILE)
-        except Exception as e:
-            print(f"Creando nuevo CSV: {str(e)}")
-            df = pd.DataFrame(columns=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'])
-
-        # Agregar nueva transacción
-        df.loc[len(df)] = formatted_transaction
-        
-        # Guardar de vuelta al CSV
-        df.to_csv(TRANSACTIONS_FILE, index=False)
-        print(f"Transacción guardada. Total registros: {len(df)}")
-        
+        # Guardar en la base de datos
+        db.add(new_transaction)
+        db.commit()
+        print("Transacción guardada exitosamente")
         return True
 
     except Exception as e:
         print(f"Error guardando transacción: {str(e)}")
-        print("Traceback:", traceback.format_exc())
+        print(traceback.format_exc())
+        db.rollback()
         return False
+    finally:
+        db.close()
 
 def load_categories():
-    """Load categories from CSV file"""
-    ensure_data_files()
-    df = pd.read_csv(CATEGORIES_FILE)
-    return df['categoria'].tolist()
+    """Carga todas las categorías de la base de datos"""
+    ensure_data_exists()
+    db = SessionLocal()
+    try:
+        categories = db.query(Category).all()
+        return [cat.categoria for cat in categories]
+    except Exception as e:
+        print(f"Error cargando categorías: {str(e)}")
+        return ["Sin Categorizar"]
+    finally:
+        db.close()
 
 def save_categories(categories):
-    """Save categories to CSV file"""
-    ensure_data_files()
-    pd.DataFrame(categories, columns=['categoria']).to_csv(CATEGORIES_FILE, index=False)
+    """Guarda las categorías en la base de datos"""
+    db = SessionLocal()
+    try:
+        # Eliminar categorías existentes
+        db.query(Category).delete()
+
+        # Agregar nuevas categorías
+        for cat in categories:
+            db.add(Category(categoria=cat))
+
+        db.commit()
+        return True
+    except Exception as e:
+        print(f"Error guardando categorías: {str(e)}")
+        db.rollback()
+        return False
+    finally:
+        db.close()
