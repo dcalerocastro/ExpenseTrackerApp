@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
-import time  # Agregar importación correcta de time
 import io
 from utils.email_parser import parse_email_content
 from utils.email_reader import EmailReader
@@ -456,6 +455,6 @@ elif page == "Gestionar Presupuestos":
 
                 if updated_budget and updated_notes:
                     st.success("✅ Presupuesto y notas actualizados")
-                    st.experimental_rerun()  # Usar experimental_rerun en lugar de rerun con sleep
+                    st.rerun()
                 else:
                     st.error("❌ Error al actualizar los datos")
