@@ -18,8 +18,46 @@ from utils.data_manager import (
 )
 import os
 
-# Page config
-st.set_page_config(page_title="Seguimiento de Gastos", layout="wide")
+# Configuración de la página
+st.set_page_config(
+    page_title="Control de Gastos",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Estilos CSS personalizados
+st.markdown("""
+    <style>
+        .main {
+            padding-top: 2rem;
+        }
+        .st-emotion-cache-1rtdyuf {
+            color: rgb(49, 51, 63);
+            font-family: "Source Sans Pro", sans-serif;
+        }
+        .st-emotion-cache-16idsys p {
+            font-size: 1rem;
+            font-weight: 400;
+        }
+        .stButton > button {
+            width: 100%;
+        }
+        /* Estilo para el menú lateral */
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+        .nav-item {
+            padding: 0.5rem 1rem;
+            margin: 0.2rem 0;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .nav-item:hover {
+            background-color: rgba(151, 166, 195, 0.15);
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # Función para actualizar las transacciones
 def update_transactions():
@@ -27,7 +65,7 @@ def update_transactions():
     st.session_state.transactions = load_transactions()
     print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
 
-# Initialize session state
+# Inicializar estado de la sesión
 if 'categories' not in st.session_state:
     st.session_state.categories = load_categories()
 if 'transactions' not in st.session_state:
@@ -35,12 +73,27 @@ if 'transactions' not in st.session_state:
 if 'synced_transactions' not in st.session_state:
     st.session_state.synced_transactions = []
 
-# Sidebar navigation
-st.sidebar.title("Navegación")
-page = st.sidebar.radio("Ir a", ["Dashboard", "Ingresar Gasto", "Sincronizar Correos", "Gestionar Categorías", "Gestionar Presupuestos"])
+# Menú de navegación lateral
+with st.sidebar:
+    st.title("Control de Gastos")
+
+    # Contenedor para el menú de navegación
+    st.markdown('<div class="sidebar-nav">', unsafe_allow_html=True)
+
+    selected = st.radio(
+        "",
+        ["🏠 Dashboard", "💰 Ingresar Gasto", "📧 Sincronizar Correos", 
+         "🏷️ Gestionar Categorías", "📊 Gestionar Presupuestos"],
+        label_visibility="collapsed"
+    )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Mapear las opciones del menú a las páginas
+page = selected.split(" ")[1]
 
 if page == "Dashboard":
-    st.title("Dashboard de Gastos")
+    st.header("📊 Dashboard de Gastos")
 
     # Forzar recarga de transacciones
     update_transactions()
@@ -189,23 +242,24 @@ if page == "Dashboard":
             )
 
 elif page == "Ingresar Gasto":
-    st.title("Ingresar Nuevo Gasto")
+    st.header("💰 Nuevo Gasto")
 
-    # Formulario para nuevo gasto
-    with st.form("nuevo_gasto"):
+    # Formulario para nuevo gasto con diseño mejorado
+    with st.form("nuevo_gasto", clear_on_submit=True):
         col1, col2 = st.columns(2)
 
         with col1:
-            fecha = st.date_input("Fecha")
-            monto = st.number_input("Monto (S/.)", min_value=0.0, step=0.1)
+            fecha = st.date_input("📅 Fecha")
+            monto = st.number_input("💵 Monto (S/.)", min_value=0.0, step=0.1)
 
         with col2:
-            descripcion = st.text_input("Descripción")
-            categoria = st.selectbox("Categoría", options=st.session_state.categories)
+            descripcion = st.text_input("📝 Descripción")
+            categoria = st.selectbox("🏷️ Categoría", options=st.session_state.categories)
 
-        tipo = st.radio("Tipo de Gasto", ['real', 'proyectado'])
+        tipo = st.radio("Tipo de Gasto", ['real', 'proyectado'], 
+                       format_func=lambda x: "💳 Real" if x == 'real' else "📅 Proyectado")
 
-        submitted = st.form_submit_button("Guardar Gasto")
+        submitted = st.form_submit_button("💾 Guardar Gasto")
 
         if submitted:
             transaction = {
@@ -218,10 +272,10 @@ elif page == "Ingresar Gasto":
             }
             if save_transaction(transaction):
                 update_transactions()
-                st.success("¡Gasto guardado exitosamente!")
+                st.success("✅ ¡Gasto guardado exitosamente!")
                 st.rerun()
             else:
-                st.error("Error al guardar el gasto")
+                st.error("❌ Error al guardar el gasto")
 
 elif page == "Sincronizar Correos":
     st.title("Sincronización de Notificaciones BCP")
