@@ -14,7 +14,7 @@ from utils.data_manager import (
     load_categories_with_budget,
     update_category_budget,
     get_budget_history,
-    update_category_notes # Added import
+    update_category_notes
 )
 import os
 
@@ -411,29 +411,3 @@ elif page == "Gestionar Presupuestos":
                         st.success("✅ Presupuesto actualizado")
                     else:
                         st.error("❌ Error al actualizar el presupuesto")
-
-    # Mostrar histórico
-    st.divider()
-    st.subheader("Histórico de Presupuestos")
-
-    # Obtener y mostrar el histórico
-    historico = get_budget_history()
-    if historico:
-        # Convertir a DataFrame para mejor visualización
-        df_hist = pd.DataFrame(historico, columns=['Categoría', 'Fecha', 'Presupuesto'])
-        df_hist['Fecha'] = pd.to_datetime(df_hist['Fecha']).dt.strftime('%Y-%m')
-
-        # Crear gráfico de línea temporal
-        fig = px.line(
-            df_hist,
-            x='Fecha',
-            y='Presupuesto',
-            color='Categoría',
-            title='Evolución de Presupuestos por Categoría',
-            markers=True
-        )
-        st.plotly_chart(fig)
-
-        # Mostrar tabla de histórico
-        st.write("### Detalle del Histórico")
-        st.dataframe(df_hist.sort_values(['Categoría', 'Fecha'], ascending=[True, False]))
