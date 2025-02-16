@@ -446,12 +446,16 @@ elif page == "Gestionar Presupuestos":
                 )
 
             if st.button("💾 Actualizar y Guardar", key=f"update_{categoria}"):
+                print(f"\n=== Intentando actualizar {categoria} ===")
+                print(f"Nuevo presupuesto: {nuevo_presupuesto}")
+                print(f"Fecha seleccionada: {fecha_seleccionada}")
+
                 updated_budget = update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada)
                 updated_notes = update_category_notes(categoria, new_notes)
 
                 if updated_budget and updated_notes:
                     st.success("✅ Presupuesto y notas actualizados")
-                    # Forzar la recarga de la página para actualizar los totales
+                    time.sleep(0.5)  # Pequeña pausa para asegurar que la BD se actualice
                     st.rerun()
                 else:
                     st.error("❌ Error al actualizar los datos")

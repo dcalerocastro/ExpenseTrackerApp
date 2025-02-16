@@ -99,10 +99,15 @@ def update_category_budget(categoria: str, presupuesto: float, fecha: datetime =
     if fecha is None:
         fecha = datetime.now()
 
+    print(f"\n=== Actualizando presupuesto de {categoria} ===")
+    print(f"Nuevo presupuesto: {presupuesto}")
+    print(f"Fecha: {fecha}")
+
     db = SessionLocal()
     try:
         category = db.query(Category).filter(Category.categoria == categoria).first()
         if category:
+            print(f"Categoría encontrada, ID: {category.id}")
             # Actualizar presupuesto actual
             category.presupuesto = presupuesto
 
@@ -114,10 +119,15 @@ def update_category_budget(categoria: str, presupuesto: float, fecha: datetime =
             )
             db.add(hist)
             db.commit()
+            print("Presupuesto actualizado exitosamente")
             return True
+
+        print("Categoría no encontrada")
         return False
+
     except Exception as e:
         print(f"Error actualizando presupuesto: {str(e)}")
+        print(traceback.format_exc())
         db.rollback()
         return False
     finally:
