@@ -44,29 +44,90 @@ st.markdown("""
         }
         .stButton > button {
             width: 100%;
+            border-radius: 8px;
+            padding: 0.5rem;
+            background-color: #DB7093;
+            color: white;
+            border: none;
+            margin: 0.5rem 0;
+            font-size: 1rem;
         }
         .auth-form {
             max-width: 400px;
-            margin: 0 auto;
+            margin: 2rem auto;
             padding: 2rem;
             background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .center-text {
             text-align: center;
+            margin: 1rem 0;
+            color: #666;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #eee;
+        }
+        .divider span {
+            padding: 0 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .google-btn {
+            width: 100%;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .input-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+        }
+        .stTextInput > div > div {
+            border-radius: 8px;
+            border: 1px solid #ddd;
         }
     </style>
 """, unsafe_allow_html=True)
 
 def show_login_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
-    st.title("🔐 Iniciar Sesión")
+    st.title("Welcome to Finance App")
+    st.markdown("Start your financial journey here", unsafe_allow_html=True)
+
+    st.markdown("""
+        <button class="google-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" 
+                 style="height: 20px; margin-right: 10px;">
+            Sign in with Google
+        </button>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="divider"><span>OR CONTINUE WITH</span></div>', unsafe_allow_html=True)
 
     with st.form("login_form"):
-        email = st.text_input("📧 Email")
-        password = st.text_input("🔑 Contraseña", type="password")
-        submit = st.form_submit_button("Ingresar")
+        st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
+        email = st.text_input("", placeholder="you@example.com", label_visibility="collapsed")
+
+        st.markdown('<p class="input-label">Password</p>', unsafe_allow_html=True)
+        password = st.text_input("", type="password", placeholder="Enter your password", label_visibility="collapsed")
+
+        submit = st.form_submit_button("Login")
 
         if submit:
             success, message, user = validate_login(email, password)
@@ -79,8 +140,8 @@ def show_login_page():
                 st.error(message)
 
     st.markdown('<div class="center-text">', unsafe_allow_html=True)
-    st.markdown("¿No tienes una cuenta?")
-    if st.button("Registrarse"):
+    st.markdown("Don't have an account?")
+    if st.button("Register"):
         st.session_state.show_register = True
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -88,14 +149,33 @@ def show_login_page():
 
 def show_register_page():
     st.markdown('<div class="auth-form">', unsafe_allow_html=True)
-    st.title("📝 Registro")
+    st.title("Create Account")
+    st.markdown("Join us to manage your finances", unsafe_allow_html=True)
+
+    st.markdown("""
+        <button class="google-btn">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" 
+                 style="height: 20px; margin-right: 10px;">
+            Sign up with Google
+        </button>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="divider"><span>OR CONTINUE WITH</span></div>', unsafe_allow_html=True)
 
     with st.form("register_form"):
-        email = st.text_input("📧 Email")
-        username = st.text_input("👤 Nombre de usuario")
-        password = st.text_input("🔑 Contraseña", type="password")
-        password_confirm = st.text_input("🔑 Confirmar contraseña", type="password")
-        submit = st.form_submit_button("Registrarse")
+        st.markdown('<p class="input-label">Email</p>', unsafe_allow_html=True)
+        email = st.text_input("", placeholder="you@example.com", label_visibility="collapsed")
+
+        st.markdown('<p class="input-label">Username</p>', unsafe_allow_html=True)
+        username = st.text_input("", placeholder="Choose a username", label_visibility="collapsed")
+
+        st.markdown('<p class="input-label">Password</p>', unsafe_allow_html=True)
+        password = st.text_input("", type="password", placeholder="Create a password", label_visibility="collapsed")
+
+        st.markdown('<p class="input-label">Confirm Password</p>', unsafe_allow_html=True)
+        password_confirm = st.text_input("", type="password", placeholder="Confirm your password", label_visibility="collapsed")
+
+        submit = st.form_submit_button("Register")
 
         if submit:
             if password != password_confirm:
@@ -110,8 +190,8 @@ def show_register_page():
                     st.error(message)
 
     st.markdown('<div class="center-text">', unsafe_allow_html=True)
-    st.markdown("¿Ya tienes una cuenta?")
-    if st.button("Iniciar Sesión"):
+    st.markdown("Already have an account?")
+    if st.button("Login"):
         st.session_state.show_register = False
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
