@@ -25,17 +25,29 @@ def send_reset_email(email: str, reset_token: str):
     # Crear el link de recuperación (ajusta la URL según tu dominio)
     reset_link = f"https://gastosync.replit.app/reset_password?token={reset_token}"
 
-    # Crear el contenido HTML del correo
+    # Crear el contenido HTML del correo con mejor formato
     body = f"""
     <html>
-        <body>
-            <h2>Recuperación de Contraseña - GastoSync</h2>
-            <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
-            <p><a href="{reset_link}">Restablecer mi contraseña</a></p>
-            <p>Este enlace expirará en 1 hora.</p>
-            <p>Si no solicitaste restablecer tu contraseña, puedes ignorar este correo.</p>
-            <br>
-            <p>Saludos,<br>Equipo GastoSync</p>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #4A4FEB; margin-bottom: 20px;">Recuperación de Contraseña - GastoSync</h2>
+                <p style="color: #333; line-height: 1.6;">Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+                <p style="margin: 25px 0;">
+                    <a href="{reset_link}" 
+                       style="background-color: #4A4FEB; 
+                              color: white; 
+                              padding: 10px 20px; 
+                              text-decoration: none; 
+                              border-radius: 5px;
+                              display: inline-block;">
+                        Restablecer mi contraseña
+                    </a>
+                </p>
+                <p style="color: #666; font-size: 0.9em;">Este enlace expirará en 1 hora.</p>
+                <p style="color: #666; font-size: 0.9em;">Si no solicitaste restablecer tu contraseña, puedes ignorar este correo.</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #888; font-size: 0.8em;">Saludos,<br>Equipo GastoSync</p>
+            </div>
         </body>
     </html>
     """
@@ -46,11 +58,14 @@ def send_reset_email(email: str, reset_token: str):
         # Conectar al servidor SMTP de Gmail
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
+
+        print(f"Intentando enviar correo desde: {sender_email}")
         server.login(sender_email, sender_password)
-        
+
         # Enviar el correo
         server.send_message(message)
         server.quit()
+        print("Correo enviado exitosamente")
         return True
     except Exception as e:
         print(f"Error enviando correo: {str(e)}")
@@ -58,25 +73,32 @@ def send_reset_email(email: str, reset_token: str):
 
 def initiate_password_reset(email: str) -> tuple[bool, str]:
     """Inicia el proceso de recuperación de contraseña"""
+    print(f"\n=== Iniciando recuperación de contraseña para: {email} ===")
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == email).first()
         if not user:
+            print("Usuario no encontrado")
             return False, "No existe una cuenta con ese correo electrónico"
 
         # Generar y guardar el token
         token = generate_reset_token()
         user.reset_token = token
         user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+
+        print("Token generado y guardado")
         db.commit()
 
         # Enviar el correo
         if send_reset_email(email, token):
+            print("Proceso de recuperación completado exitosamente")
             return True, "Se ha enviado un correo con las instrucciones para restablecer tu contraseña"
         else:
+            print("Error al enviar el correo")
             return False, "Error al enviar el correo de recuperación"
 
     except Exception as e:
+        print(f"Error en el proceso de recuperación: {str(e)}")
         db.rollback()
         return False, f"Error en el proceso de recuperación: {str(e)}"
     finally:
