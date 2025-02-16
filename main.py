@@ -338,9 +338,11 @@ elif page == "Gestionar Presupuestos":
             st.write(f"### {categoria}")
 
         with col2:
+            # Aseguramos que presupuesto sea un número, usando 0.0 como valor por defecto si es None
+            presupuesto_actual = float(presupuesto if presupuesto is not None else 0.0)
             nuevo_presupuesto = st.number_input(
                 f"Presupuesto mensual para {categoria}",
-                value=float(presupuesto),
+                value=presupuesto_actual,
                 step=10.0,
                 key=f"budget_{categoria}"
             )
@@ -359,6 +361,8 @@ elif page == "Gestionar Presupuestos":
     # Crear gráfico de barras para presupuestos
     if categories_with_budget:
         df_budget = pd.DataFrame(categories_with_budget, columns=['Categoría', 'Presupuesto'])
+        # Asegurar que no hay valores nulos en Presupuesto
+        df_budget['Presupuesto'] = df_budget['Presupuesto'].fillna(0.0)
         fig = px.bar(
             df_budget,
             x='Categoría',
