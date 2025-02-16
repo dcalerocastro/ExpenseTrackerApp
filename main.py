@@ -349,9 +349,9 @@ elif page == "Gestionar Presupuestos":
             options=list(range(1, 13)),
             index=datetime.now().month - 1,
             format_func=lambda x: ['Enero', 'Febrero', 'Marzo', 'Abril', 
-                                 'Mayo', 'Junio', 'Julio', 'Agosto',
-                                 'Septiembre', 'Octubre', 'Noviembre', 
-                                 'Diciembre'][x-1]
+                                'Mayo', 'Junio', 'Julio', 'Agosto',
+                                'Septiembre', 'Octubre', 'Noviembre', 
+                                'Diciembre'][x-1]
         )
 
     # Crear fecha del primer día del mes seleccionado
