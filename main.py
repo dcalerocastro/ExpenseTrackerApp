@@ -22,6 +22,8 @@ if 'categories' not in st.session_state:
     st.session_state.categories = load_categories()
 if 'transactions' not in st.session_state:
     st.session_state.transactions = load_transactions()
+if 'synced_transactions' not in st.session_state:
+    st.session_state.synced_transactions = []
 
 # Sidebar navigation
 st.sidebar.title("Navegación")
@@ -188,65 +190,60 @@ elif page == "Sincronizar Correos":
 
                     if transactions:
                         st.success(f"Se encontraron {len(transactions)} notificaciones")
-
-                        for idx, transaction in enumerate(transactions):
-                            with st.expander(f"Transacción: {transaction['descripcion']} - S/. {transaction['monto']:.2f}", expanded=True):
-                                col1, col2 = st.columns([3, 1])
-
-                                with col1:
-                                    st.write(f"📅 Fecha: {transaction['fecha'].strftime('%d/%m/%Y')}")
-                                    st.write(f"💰 Monto: S/. {transaction['monto']:.2f}")
-                                    st.write(f"📝 Descripción: {transaction['descripcion']}")
-
-                                    # Agregar categoría a la transacción
-                                    transaction['categoria'] = st.selectbox(
-                                        "🏷️ Categoría",
-                                        options=st.session_state.categories,
-                                        key=f"cat_{idx}"
-                                    )
-
-                                with col2:
-                                    if st.button("💾 Guardar", key=f"save_{idx}"):
-                                        print(f"\n=== GUARDANDO TRANSACCIÓN {idx} ===")
-                                        print(f"Datos originales: {transaction}")
-
-                                        try:
-                                            # Crear diccionario de guardado
-                                            save_data = {
-                                                'fecha': transaction['fecha'],
-                                                'monto': float(transaction['monto']),
-                                                'descripcion': transaction['descripcion'],
-                                                'categoria': transaction['categoria'],
-                                                'tipo': 'real',
-                                                'moneda': transaction.get('moneda', 'PEN')
-                                            }
-                                            print(f"Datos a guardar: {save_data}")
-
-                                            if save_transaction(save_data):
-                                                st.session_state.transactions = load_transactions()
-                                                st.success("¡Transacción guardada exitosamente!")
-
-                                                # Verificar si la transacción se guardó correctamente
-                                                latest_transactions = load_transactions()
-                                                print(f"Total de transacciones después de guardar: {len(latest_transactions)}")
-
-                                                # Recargar la página para actualizar la vista
-                                                st.rerun()
-                                            else:
-                                                st.error("Error: No se pudo guardar la transacción. Revise los logs para más detalles.")
-
-                                        except Exception as e:
-                                            print(f"Error guardando transacción {idx}: {str(e)}")
-                                            st.error(f"Error inesperado: {str(e)}")
-
-                                    if st.button("❌ Descartar", key=f"discard_{idx}"):
-                                        st.info("Transacción descartada")
-                                        st.rerun()
+                        # Store transactions in session state
+                        st.session_state.synced_transactions = transactions
                     else:
                         st.warning("No se encontraron notificaciones en el período seleccionado")
 
             except Exception as e:
                 st.error(f"Error al sincronizar: {str(e)}")
+
+        # Display synced transactions
+        if st.session_state.synced_transactions:
+            st.subheader(f"Transacciones Pendientes ({len(st.session_state.synced_transactions)})")
+
+            for idx, transaction in enumerate(st.session_state.synced_transactions):
+                with st.expander(f"Transacción: {transaction['descripcion']} - S/. {transaction['monto']:.2f}", expanded=True):
+                    col1, col2 = st.columns([3, 1])
+
+                    with col1:
+                        st.write(f"📅 Fecha: {transaction['fecha'].strftime('%d/%m/%Y')}")
+                        st.write(f"💰 Monto: S/. {transaction['monto']:.2f}")
+                        st.write(f"📝 Descripción: {transaction['descripcion']}")
+
+                        # Agregar categoría a la transacción
+                        transaction['categoria'] = st.selectbox(
+                            "🏷️ Categoría",
+                            options=st.session_state.categories,
+                            key=f"cat_{idx}"
+                        )
+
+                    with col2:
+                        if st.button("💾 Guardar", key=f"save_{idx}"):
+                            try:
+                                save_data = {
+                                    'fecha': transaction['fecha'],
+                                    'monto': float(transaction['monto']),
+                                    'descripcion': transaction['descripcion'],
+                                    'categoria': transaction['categoria'],
+                                    'tipo': 'real',
+                                    'moneda': transaction.get('moneda', 'PEN')
+                                }
+
+                                if save_transaction(save_data):
+                                    # Remove saved transaction from session state
+                                    st.session_state.synced_transactions.pop(idx)
+                                    st.session_state.transactions = load_transactions()
+                                    st.success("¡Transacción guardada exitosamente!")
+                                else:
+                                    st.error("Error: No se pudo guardar la transacción")
+                            except Exception as e:
+                                st.error(f"Error inesperado: {str(e)}")
+
+                        if st.button("❌ Descartar", key=f"discard_{idx}"):
+                            # Remove discarded transaction from session state
+                            st.session_state.synced_transactions.pop(idx)
+                            st.success("Transacción descartada")
 
 elif page == "Gestionar Categorías":
     st.title("Gestionar Categorías")
