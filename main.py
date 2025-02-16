@@ -334,18 +334,30 @@ elif page == "Gestionar Presupuestos":
     a lo largo del tiempo.
     """)
 
-    # Selector de mes
-    mes_seleccionado = st.date_input(
-        "Selecciona el mes para ver/editar presupuestos",
-        value=datetime.now().date(),
-        min_value=datetime(2024, 1, 1).date(),
-        max_value=datetime(2025, 12, 31).date()
-    )
+    # Selector de mes y año
+    col1, col2 = st.columns(2)
+    with col1:
+        year = st.selectbox(
+            "Año",
+            options=list(range(2024, 2026)),
+            index=datetime.now().year - 2024
+        )
+    with col2:
+        month = st.selectbox(
+            "Mes",
+            options=list(range(1, 13)),
+            index=datetime.now().month - 1,
+            format_func=lambda x: ['Enero', 'Febrero', 'Marzo', 'Abril', 
+                                 'Mayo', 'Junio', 'Julio', 'Agosto',
+                                 'Septiembre', 'Octubre', 'Noviembre', 
+                                 'Diciembre'][x-1]
+        )
+
+    # Crear fecha del primer día del mes seleccionado
+    fecha_seleccionada = datetime(year, month, 1)
 
     # Cargar categorías con sus presupuestos para el mes seleccionado
-    categories_with_budget = load_categories_with_budget(
-        datetime.combine(mes_seleccionado, datetime.min.time())
-    )
+    categories_with_budget = load_categories_with_budget(fecha_seleccionada)
 
     # Calcular presupuesto total
     total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
@@ -382,11 +394,7 @@ elif page == "Gestionar Presupuestos":
 
         with col3:
             if st.button("Actualizar", key=f"update_{categoria}"):
-                if update_category_budget(
-                    categoria, 
-                    nuevo_presupuesto,
-                    datetime.combine(mes_seleccionado, datetime.min.time())
-                ):
+                if update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada):
                     st.success(f"Presupuesto actualizado para {categoria}")
                 else:
                     st.error("Error al actualizar el presupuesto")
