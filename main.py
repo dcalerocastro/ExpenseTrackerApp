@@ -78,19 +78,52 @@ with st.sidebar:
     st.title("Control de Gastos")
 
     # Contenedor para el menú de navegación
-    st.markdown('<div class="sidebar-nav">', unsafe_allow_html=True)
+    st.markdown("""
+        <style>
+            section[data-testid="stSidebar"] {
+                background-color: #FFFFFF;
+                min-width: 250px !important;
+            }
+            .st-emotion-cache-16idsys p {
+                font-size: 1rem !important;
+                color: #262730 !important;
+            }
+            div[role="radiogroup"] > div {
+                margin: 0.5rem 0;
+                padding: 0.5rem;
+                border-radius: 0.5rem;
+            }
+            div[role="radiogroup"] > div:hover {
+                background-color: rgba(151, 166, 195, 0.15);
+            }
+            .st-emotion-cache-1inwz65 {
+                font-size: 1rem;
+                font-weight: 400;
+                color: #262730;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    menu_options = {
+        "🏠 Dashboard": "Dashboard",
+        "💰 Ingresar Gasto": "Ingresar Gasto",
+        "📧 Sincronizar Correos": "Sincronizar Correos",
+        "🏷️ Gestionar Categorías": "Gestionar Categorías",
+        "📊 Gestionar Presupuestos": "Gestionar Presupuestos"
+    }
 
     selected = st.radio(
-        "",
-        ["🏠 Dashboard", "💰 Ingresar Gasto", "📧 Sincronizar Correos", 
-         "🏷️ Gestionar Categorías", "📊 Gestionar Presupuestos"],
-        label_visibility="collapsed"
+        "Navegación",
+        options=list(menu_options.keys()),
+        format_func=lambda x: x,
+        label_visibility="collapsed",
+        key="nav_radio"
     )
 
-    st.markdown('</div>', unsafe_allow_html=True)
+    page = menu_options[selected]
+
 
 # Mapear las opciones del menú a las páginas
-page = selected.split(" ")[1]
 
 if page == "Dashboard":
     st.header("📊 Dashboard de Gastos")
