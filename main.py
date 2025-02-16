@@ -83,7 +83,12 @@ if page == "Dashboard":
         # Summary metrics
         col1, col2, col3, col4 = st.columns(4)
         real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
-        proy_gastos = filtered_df[filtered_df['tipo'] == 'proyectado']['monto'].sum()
+
+        # Obtener presupuestos del mes seleccionado
+        fecha_seleccionada = datetime(year, month, 1)
+        categories_with_budget = load_categories_with_budget(fecha_seleccionada)
+        proy_gastos = sum(float(presupuesto if presupuesto is not None else 0.0) 
+                         for _, presupuesto, _ in categories_with_budget)
 
         # Debug info
         print("\n=== Debug de Gastos ===")
@@ -106,7 +111,12 @@ if page == "Dashboard":
 
         # Preparar datos para el gráfico
         real_by_cat = filtered_df[filtered_df['tipo'] == 'real'].groupby('categoria')['monto'].sum()
-        proy_by_cat = filtered_df[filtered_df['tipo'] == 'proyectado'].groupby('categoria')['monto'].sum()
+
+        # Convertir presupuestos a Series para facilitar la combinación
+        proy_by_cat = pd.Series({
+            cat: float(presup if presup is not None else 0.0)
+            for cat, presup, _ in categories_with_budget
+        }, name='monto')
 
         # Combinar datos
         compare_df = pd.DataFrame({
