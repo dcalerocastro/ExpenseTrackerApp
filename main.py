@@ -312,18 +312,14 @@ if page == "Dashboard":
         ]
 
         # Summary metrics
-        col1, col2, col3 = st.columns(3)
+        total_gastos = filtered_df['monto'].sum()
+        promedio_diario = total_gastos / filtered_df['fecha'].dt.day.nunique() if not filtered_df.empty else 0
 
-        # Calcular totales
-        real_gastos = filtered_df[filtered_df['tipo'] == 'real']['monto'].sum()
-        proy_gastos = filtered_df[filtered_df['tipo'] == 'proyectado']['monto'].sum()
-
+        col1, col2 = st.columns(2)
         with col1:
-            st.metric("Total Gastos Reales", f"S/. {real_gastos:.2f}")
+            st.metric("Total Gastos", f"S/. {total_gastos:.2f}")
         with col2:
-            st.metric("Total Gastos Proyectados", f"S/. {proy_gastos:.2f}")
-        with col3:
-            st.metric("Total General", f"S/. {(real_gastos + proy_gastos):.2f}")
+            st.metric("Promedio Diario", f"S/. {promedio_diario:.2f}")
 
         # Gráfico de barras por categoría
         st.subheader("Gastos por Categoría")
@@ -348,13 +344,12 @@ if page == "Dashboard":
             display_df['fecha'] = display_df['fecha'].dt.strftime('%Y-%m-%d %H:%M')
             st.dataframe(
                 display_df,
-                column_order=['fecha', 'monto', 'descripcion', 'categoria', 'tipo'],
+                column_order=['fecha', 'monto', 'descripcion', 'categoria'],
                 column_config={
                     'fecha': 'Fecha',
                     'monto': st.column_config.NumberColumn('Monto', format="S/. %.2f"),
                     'descripcion': 'Descripción',
-                    'categoria': 'Categoría',
-                    'tipo': 'Tipo'
+                    'categoria': 'Categoría'
                 }
             )
         else:
@@ -374,8 +369,6 @@ elif page == "Ingresar Gasto":
             descripcion = st.text_input("📝 Descripción")
             categoria = st.selectbox("🏷️ Categoría", options=st.session_state.categories)
 
-        tipo = st.radio("Tipo de Gasto", ['real', 'proyectado'])
-
         submitted = st.form_submit_button("💾 Guardar Gasto")
 
         if submitted:
@@ -384,7 +377,7 @@ elif page == "Ingresar Gasto":
                 'monto': monto,
                 'descripcion': descripcion,
                 'categoria': categoria,
-                'tipo': tipo,
+                'tipo': 'real',  # Default to 'real' since we're removing projected expenses
                 'moneda': 'PEN',
                 'user_id': st.session_state.user_id
             }
