@@ -65,24 +65,38 @@ def load_transactions():
 
 def save_transaction(transaction_data):
     """Guarda una nueva transacción en la base de datos"""
+    print("\n=== INICIANDO GUARDADO DE TRANSACCIÓN ===")
+    print(f"Datos recibidos: {transaction_data}")
+
+    # Verificar que todos los campos requeridos estén presentes
+    required_fields = ['fecha', 'monto', 'descripcion', 'categoria']
+    for field in required_fields:
+        if field not in transaction_data:
+            print(f"Error: Campo requerido faltante: {field}")
+            return False
+
     db = SessionLocal()
     try:
-        print("\n=== INICIANDO GUARDADO DE TRANSACCIÓN ===")
-        print(f"Datos recibidos: {transaction_data}")
+        # Convertir fecha si es necesario
+        if isinstance(transaction_data['fecha'], str):
+            transaction_data['fecha'] = pd.to_datetime(transaction_data['fecha'])
 
         # Crear nueva transacción
         new_transaction = Transaction(
-            fecha=pd.to_datetime(transaction_data['fecha']),
+            fecha=transaction_data['fecha'],
             monto=float(transaction_data['monto']),
             descripcion=str(transaction_data['descripcion']),
             categoria=str(transaction_data['categoria']),
             tipo=str(transaction_data.get('tipo', 'real'))
         )
 
+        print(f"Transacción preparada: {vars(new_transaction)}")
+
         # Guardar en la base de datos
         db.add(new_transaction)
         db.commit()
         print("Transacción guardada exitosamente")
+
         # Verificar inmediatamente después del guardado
         saved_transactions = db.query(Transaction).all()
         print(f"Verificación inmediata - Registros en BD: {len(saved_transactions)}")
