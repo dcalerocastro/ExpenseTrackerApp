@@ -235,7 +235,7 @@ def update_category_notes(categoria: str, notas: str, user_id: int = None):
     finally:
         db.close()
 
-def update_category_budget(categoria: str, presupuesto: float, fecha: datetime = None, user_id: int = None):
+def update_category_budget(categoria: str, presupuesto: float, user_id: int, fecha: datetime = None) -> bool:
     """Actualiza el presupuesto de una categoría y guarda el histórico"""
     if fecha is None:
         fecha = datetime.now()
@@ -250,9 +250,8 @@ def update_category_budget(categoria: str, presupuesto: float, fecha: datetime =
         # Construir la consulta base
         query = db.query(Category).filter(Category.categoria == categoria)
 
-        # Agregar filtro de usuario si se proporciona
-        if user_id is not None:
-            query = query.filter(Category.user_id == user_id)
+        # Agregar filtro de usuario
+        query = query.filter(Category.user_id == user_id)
 
         category = query.first()
 

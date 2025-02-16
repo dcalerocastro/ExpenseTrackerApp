@@ -1,4 +1,3 @@
-<replit_final_file>
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -31,7 +30,7 @@ def update_transactions():
     st.session_state.transactions = load_transactions(user_id=st.session_state.user_id)
     print(f"Transacciones cargadas: {len(st.session_state.transactions) if not st.session_state.transactions.empty else 0}")
 
-# Mover la función refresh_page antes de las definiciones de páginas
+# Función refresh_page antes de las definiciones de páginas
 def refresh_page():
     """Función para refrescar solo los estados de la página que necesitan actualización"""
     # Guardar los estados de autenticación
@@ -50,7 +49,6 @@ def refresh_page():
     st.session_state.synced_transactions = synced_transactions
 
     st.rerun()
-
 
 # Configuración de la página
 st.set_page_config(
@@ -146,35 +144,6 @@ st.markdown("""
         .stTextInput > div > div:focus-within {
             border-color: #4A4FEB;
             box-shadow: 0 0 0 2px rgba(74, 79, 235, 0.2);
-        }
-        div[role="radiogroup"] > div {
-            margin: 0.5rem 0;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.3s ease;
-        }
-        div[role="radiogroup"] > div:hover {
-            background-color: rgba(74, 79, 235, 0.15);
-        }
-        div[role="radiogroup"] > div[data-checked="true"] {
-            background-color: rgba(74, 79, 235, 0.2);
-        }
-        .st-emotion-cache-1inwz65 {
-            font-size: 1rem;
-            font-weight: 400;
-            color: #262730;
-        }
-        .streamlit-expanderHeader {
-            background-color: rgba(74, 79, 235, 0.1);
-            border-radius: 8px;
-            transition: background-color 0.3s ease;
-        }
-        .streamlit-expanderHeader:hover {
-            background-color: rgba(74, 79, 235, 0.2);
-        }
-        .streamlit-expanderContent {
-            border-radius: 0 0 8px 8px;
-            border: 1px solid rgba(74, 79, 235, 0.2);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -399,9 +368,7 @@ elif page == "Ingresar Gasto":
                 'monto': monto,
                 'descripcion': descripcion,
                 'categoria': categoria,
-                'tipo': 'real',  # Default to 'real' since we're removing projected expenses
-                'moneda': 'PEN',
-                'user_id': st.session_state.user_id
+                'moneda': 'PEN'
             }
             if save_transaction(transaction, user_id=st.session_state.user_id):
                 update_transactions()
@@ -531,7 +498,12 @@ elif page == "Gestionar Presupuestos":
 
             if st.button("💾 Actualizar y Guardar", key=f"update_{categoria}"):
                 # Actualizar el presupuesto
-                updated_budget = update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada, user_id=st.session_state.user_id)
+                updated_budget = update_category_budget(
+                    categoria=categoria,
+                    presupuesto=nuevo_presupuesto,
+                    user_id=st.session_state.user_id,
+                    fecha=fecha_seleccionada
+                )
                 updated_notes = update_category_notes(categoria, new_notes, user_id=st.session_state.user_id)
 
                 if updated_budget and updated_notes:
@@ -623,9 +595,7 @@ elif page == "Sincronizar Correos":
                                     'monto': float(transaction['monto']),
                                     'descripcion': transaction['descripcion'],
                                     'categoria': transaction['categoria'],
-                                    'tipo': 'real',
-                                    'moneda': transaction.get('moneda', 'PEN'),
-                                    'user_id': st.session_state.user_id
+                                    'moneda': transaction.get('moneda', 'PEN')
                                 }
 
                                 print(f"\n=== Guardando transacción {idx} ===")
