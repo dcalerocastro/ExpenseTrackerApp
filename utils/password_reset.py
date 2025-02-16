@@ -11,7 +11,7 @@ def generate_reset_token():
     """Genera un token seguro para restablecer la contraseña"""
     return secrets.token_urlsafe(32)
 
-def send_reset_email(email: str, reset_token: str):
+def send_reset_email(email: str, reset_token: str) -> tuple[bool, str]:
     """Envía el correo de recuperación de contraseña"""
     print("\n=== Intentando enviar correo de recuperación ===")
     sender_email = os.getenv('EMAIL_USER')
@@ -20,6 +20,10 @@ def send_reset_email(email: str, reset_token: str):
     print(f"Configuración de correo:")
     print(f"- Remitente: {sender_email}")
     print(f"- Contraseña configurada: {'Sí' if sender_password else 'No'}")
+
+    if not sender_email or not sender_password:
+        print("Error: Credenciales de correo no configuradas")
+        return False, "Las credenciales de correo no están configuradas"
 
     # Crear el mensaje
     message = MIMEMultipart()
@@ -75,17 +79,17 @@ def send_reset_email(email: str, reset_token: str):
 
         server.quit()
         print("Conexión cerrada")
-        return True
+        return True, "Correo enviado exitosamente"
     except smtplib.SMTPAuthenticationError as e:
         print(f"Error de autenticación SMTP: {str(e)}")
         print("Esto puede deberse a:")
         print("1. Contraseña incorrecta")
         print("2. Acceso de aplicaciones menos seguras desactivado")
         print("3. Autenticación de dos factores activada sin contraseña de aplicación")
-        return False
+        return False, "Error de autenticación al enviar el correo"
     except Exception as e:
         print(f"Error enviando correo: {str(e)}")
-        return False
+        return False, f"Error al enviar el correo: {str(e)}"
 
 def initiate_password_reset(email: str) -> tuple[bool, str]:
     """Inicia el proceso de recuperación de contraseña"""
@@ -106,12 +110,13 @@ def initiate_password_reset(email: str) -> tuple[bool, str]:
         db.commit()
 
         # Enviar el correo
-        if send_reset_email(email, token):
+        success, message = send_reset_email(email, token)
+        if success:
             print("Proceso de recuperación completado exitosamente")
             return True, "Se ha enviado un correo con las instrucciones para restablecer tu contraseña"
         else:
             print("Error al enviar el correo")
-            return False, "Error al enviar el correo de recuperación. Por favor, contacta al soporte técnico."
+            return False, message
 
     except Exception as e:
         print(f"Error en el proceso de recuperación: {str(e)}")
