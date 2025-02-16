@@ -10,7 +10,7 @@ from utils.data_manager import (
     load_transactions, save_transaction, load_categories,
     save_categories, load_categories_with_budget,
     update_category_budget, get_budget_history,
-    update_category_notes
+    update_category_notes, is_duplicate_transaction
 )
 from utils.auth import register_user, validate_login
 import os
@@ -544,26 +544,50 @@ elif page == "Sincronizar Correos":
 
                 # Botón para sincronizar
                 with col1:
+                    days_to_sync = st.slider(
+                        "Días a sincronizar",
+                        min_value=1,
+                        max_value=90,
+                        value=30,
+                        key=f"days_{account.id}"
+                    )
                     if st.button("🔄 Sincronizar", key=f"sync_{account.id}"):
                         try:
                             with st.spinner('Conectando con el servidor de correo...'):
                                 password = decrypt_password(account.encrypted_password)
                                 reader = EmailReader(account.email, password)
                                 transactions = reader.fetch_notifications(
-                                    days_back=30,
+                                    days_back=days_to_sync,
                                     bank=account.bank_name
                                 )
 
                                 if transactions:
-                                    st.success(f"Se encontraron {len(transactions)} notificaciones")
-                                    # Agregar el banco a cada transacción
+                                    # Filtrar transacciones duplicadas
+                                    new_transactions = []
+                                    duplicates = 0
+
                                     for t in transactions:
                                         t['banco'] = account.bank_name
-                                    # Store transactions in session state
-                                    if 'synced_transactions' not in st.session_state:
-                                        st.session_state.synced_transactions = []
-                                    st.session_state.synced_transactions.extend(transactions)
-                                    update_last_sync(account.id)
+                                        if not is_duplicate_transaction(t, st.session_state.user_id):
+                                            new_transactions.append(t)
+                                        else:
+                                            duplicates += 1
+
+                                    if new_transactions:
+                                        st.success(f"Se encontraron {len(new_transactions)} notificaciones nuevas")
+                                        if duplicates > 0:
+                                            st.info(f"Se omitieron {duplicates} transacciones que ya estaban sincronizadas")
+
+                                        # Store transactions in session state
+                                        if 'synced_transactions' not in st.session_state:
+                                            st.session_state.synced_transactions = []
+                                        st.session_state.synced_transactions.extend(new_transactions)
+                                        update_last_sync(account.id)
+                                    else:
+                                        if duplicates > 0:
+                                            st.info(f"Todas las {duplicates} transacciones encontradas ya estaban sincronizadas")
+                                        else:
+                                            st.warning("No se encontraron notificaciones en el período seleccionado")
                                 else:
                                     st.warning("No se encontraron notificaciones en el período seleccionado")
 

@@ -155,6 +155,10 @@ def save_transaction(transaction_data, user_id: int = None):
         if isinstance(transaction_data['fecha'], str):
             transaction_data['fecha'] = pd.to_datetime(transaction_data['fecha'])
 
+        if is_duplicate_transaction(transaction_data, user_id):
+            print("Transacción duplicada. No se guardará.")
+            return False
+
         new_transaction = Transaction(
             fecha=transaction_data['fecha'],
             monto=float(transaction_data['monto']),
@@ -305,5 +309,27 @@ def get_budget_history(categoria: str = None):
     except Exception as e:
         print(f"Error obteniendo histórico: {str(e)}")
         return []
+    finally:
+        db.close()
+
+def is_duplicate_transaction(transaction: dict, user_id: int) -> bool:
+    """Verifica si una transacción ya existe en la base de datos"""
+    print("\n=== Verificando duplicados ===")
+    print(f"Verificando transacción: {transaction}")
+
+    db = SessionLocal()
+    try:
+        # Buscar transacciones con los mismos detalles
+        existing = db.query(Transaction).filter(
+            Transaction.user_id == user_id,
+            Transaction.fecha == transaction['fecha'],
+            Transaction.monto == transaction['monto'],
+            Transaction.descripcion == transaction['descripcion']
+        ).first()
+
+        return existing is not None
+    except Exception as e:
+        print(f"Error verificando duplicados: {str(e)}")
+        return False
     finally:
         db.close()
