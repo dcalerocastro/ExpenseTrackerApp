@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Obtener la URL de la base de datos del entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -15,7 +16,22 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Crear la base para los modelos
 Base = declarative_base()
 
-# Definir los modelos
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+# Definir los modelos existentes
 class Transaction(Base):
     __tablename__ = "transactions"
 
@@ -26,24 +42,29 @@ class Transaction(Base):
     categoria = Column(String, nullable=False)
     tipo = Column(String, nullable=False)  # 'real' o 'proyectado'
     moneda = Column(String, nullable=False, default='PEN')
+    user_id = Column(Integer, ForeignKey('users.id'))  # Añadir relación con usuario
+
+    user = relationship("User", backref="transactions")
 
 class Category(Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
     categoria = Column(String, unique=True, nullable=False)
-    notas = Column(Text, nullable=True)  # Nuevo campo para notas descriptivas
-    presupuesto = Column(Float, nullable=True)  # Presupuesto actual
+    notas = Column(Text, nullable=True)
+    presupuesto = Column(Float, nullable=True)
     presupuestos = relationship("BudgetHistory", back_populates="category")
+    user_id = Column(Integer, ForeignKey('users.id'))  # Añadir relación con usuario
+
+    user = relationship("User", backref="categories")
 
 class BudgetHistory(Base):
     __tablename__ = "budget_history"
 
     id = Column(Integer, primary_key=True, index=True)
     category_id = Column(Integer, ForeignKey('categories.id'))
-    fecha = Column(DateTime, nullable=False)  # Fecha de inicio del presupuesto
+    fecha = Column(DateTime, nullable=False)
     monto = Column(Float, nullable=False)
-
     category = relationship("Category", back_populates="presupuestos")
 
 # Crear las tablas

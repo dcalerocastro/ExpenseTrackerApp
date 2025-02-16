@@ -7,15 +7,12 @@ import io
 from utils.email_parser import parse_email_content
 from utils.email_reader import EmailReader
 from utils.data_manager import (
-    load_transactions,
-    save_transaction,
-    load_categories,
-    save_categories,
-    load_categories_with_budget,
-    update_category_budget,
-    get_budget_history,
+    load_transactions, save_transaction, load_categories,
+    save_categories, load_categories_with_budget,
+    update_category_budget, get_budget_history,
     update_category_notes
 )
+from utils.auth import register_user, validate_login
 import os
 
 # Configuración de la página
@@ -24,6 +21,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Inicializar estado de sesión para autenticación
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = None
+if 'username' not in st.session_state:
+    st.session_state.username = None
 
 # Estilos CSS personalizados
 st.markdown("""
@@ -42,23 +45,90 @@ st.markdown("""
         .stButton > button {
             width: 100%;
         }
-        /* Estilo para el menú lateral */
-        .sidebar-nav {
-            padding: 1rem 0;
+        .auth-form {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .nav-item {
-            padding: 0.5rem 1rem;
-            margin: 0.2rem 0;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .nav-item:hover {
-            background-color: rgba(151, 166, 195, 0.15);
+        .center-text {
+            text-align: center;
         }
     </style>
 """, unsafe_allow_html=True)
 
+def show_login_page():
+    st.markdown('<div class="auth-form">', unsafe_allow_html=True)
+    st.title("🔐 Iniciar Sesión")
+
+    with st.form("login_form"):
+        email = st.text_input("📧 Email")
+        password = st.text_input("🔑 Contraseña", type="password")
+        submit = st.form_submit_button("Ingresar")
+
+        if submit:
+            success, message, user = validate_login(email, password)
+            if success:
+                st.session_state.user_id = user.id
+                st.session_state.username = user.username
+                st.success(f"¡Bienvenido, {user.username}!")
+                st.rerun()
+            else:
+                st.error(message)
+
+    st.markdown('<div class="center-text">', unsafe_allow_html=True)
+    st.markdown("¿No tienes una cuenta?")
+    if st.button("Registrarse"):
+        st.session_state.show_register = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def show_register_page():
+    st.markdown('<div class="auth-form">', unsafe_allow_html=True)
+    st.title("📝 Registro")
+
+    with st.form("register_form"):
+        email = st.text_input("📧 Email")
+        username = st.text_input("👤 Nombre de usuario")
+        password = st.text_input("🔑 Contraseña", type="password")
+        password_confirm = st.text_input("🔑 Confirmar contraseña", type="password")
+        submit = st.form_submit_button("Registrarse")
+
+        if submit:
+            if password != password_confirm:
+                st.error("Las contraseñas no coinciden")
+            else:
+                success, message = register_user(email, username, password)
+                if success:
+                    st.success(message)
+                    st.session_state.show_register = False
+                    st.rerun()
+                else:
+                    st.error(message)
+
+    st.markdown('<div class="center-text">', unsafe_allow_html=True)
+    st.markdown("¿Ya tienes una cuenta?")
+    if st.button("Iniciar Sesión"):
+        st.session_state.show_register = False
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Mostrar páginas de autenticación si no hay usuario logueado
+if not st.session_state.user_id:
+    if not hasattr(st.session_state, 'show_register'):
+        st.session_state.show_register = False
+
+    if st.session_state.show_register:
+        show_register_page()
+    else:
+        show_login_page()
+    st.stop()
+
+# Si hay usuario logueado, mostrar la aplicación normal
 # Función para actualizar las transacciones
 def update_transactions():
     print("\n=== Actualizando transacciones ===")
