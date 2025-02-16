@@ -14,6 +14,15 @@ from utils.data_manager import (
 )
 from utils.auth import register_user, validate_login
 import os
+from utils.database import init_db
+
+# Initialize database tables
+print("Iniciando creación de tablas...")
+try:
+    init_db()
+    print("Tablas creadas exitosamente")
+except Exception as e:
+    print(f"Error al crear tablas: {str(e)}")
 
 # Configuración de la página
 st.set_page_config(
