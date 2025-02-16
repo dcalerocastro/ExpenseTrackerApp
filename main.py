@@ -417,8 +417,8 @@ elif page == "Gestionar Transacciones":
     # Forzar recarga de transacciones
     update_transactions()
 
-    # Filtros de fecha
-    col1, col2 = st.columns(2)
+    # Filtros
+    col1, col2, col3 = st.columns(3)
     with col1:
         year = st.selectbox(
             "Año",
@@ -437,16 +437,36 @@ elif page == "Gestionar Transacciones":
                                 'Diciembre'][x-1],
             key='trans_month'
         )
+    with col3:
+        # Obtener categorías únicas de las transacciones
+        categorias = ['Todas'] + sorted(st.session_state.transactions['categoria'].unique().tolist())
+        categoria_filtro = st.selectbox(
+            "Categoría",
+            options=categorias,
+            key='trans_category'
+        )
 
-    # Filtrar transacciones por mes y año
+    # Filtrar transacciones por fecha
     filtered_df = st.session_state.transactions[
         (st.session_state.transactions['fecha'].dt.year == year) &
         (st.session_state.transactions['fecha'].dt.month == month)
     ]
 
+    # Aplicar filtro de categoría si no es "Todas"
+    if categoria_filtro != 'Todas':
+        filtered_df = filtered_df[filtered_df['categoria'] == categoria_filtro]
+
     if filtered_df.empty:
-        st.info("No hay transacciones para el período seleccionado")
+        st.info("No hay transacciones para los filtros seleccionados")
     else:
+        # Mostrar resumen
+        total_filtrado = filtered_df['monto'].sum()
+        st.metric(
+            "Total Filtrado",
+            f"S/. {total_filtrado:.2f}",
+            help="Suma total de las transacciones filtradas"
+        )
+
         # Mostrar todas las transacciones con capacidad de edición
         st.write("### Transacciones del Período")
 
