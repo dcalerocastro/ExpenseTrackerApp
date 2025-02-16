@@ -13,8 +13,13 @@ def generate_reset_token():
 
 def send_reset_email(email: str, reset_token: str):
     """Envía el correo de recuperación de contraseña"""
+    print("\n=== Intentando enviar correo de recuperación ===")
     sender_email = os.getenv('EMAIL_USER')
     sender_password = os.getenv('EMAIL_PASSWORD')
+
+    print(f"Configuración de correo:")
+    print(f"- Remitente: {sender_email}")
+    print(f"- Contraseña configurada: {'Sí' if sender_password else 'No'}")
 
     # Crear el mensaje
     message = MIMEMultipart()
@@ -22,7 +27,7 @@ def send_reset_email(email: str, reset_token: str):
     message["To"] = email
     message["Subject"] = "Recuperación de Contraseña - GastoSync"
 
-    # Crear el link de recuperación (ajusta la URL según tu dominio)
+    # Crear el link de recuperación
     reset_link = f"https://gastosync.replit.app/reset_password?token={reset_token}"
 
     # Crear el contenido HTML del correo con mejor formato
@@ -55,18 +60,29 @@ def send_reset_email(email: str, reset_token: str):
     message.attach(MIMEText(body, "html"))
 
     try:
-        # Conectar al servidor SMTP de Gmail
+        print("Conectando al servidor SMTP de Gmail...")
         server = smtplib.SMTP("smtp.gmail.com", 587)
+        print("Iniciando TLS...")
         server.starttls()
 
-        print(f"Intentando enviar correo desde: {sender_email}")
+        print("Intentando login...")
         server.login(sender_email, sender_password)
+        print("Login exitoso")
 
-        # Enviar el correo
+        print("Enviando mensaje...")
         server.send_message(message)
+        print("Mensaje enviado")
+
         server.quit()
-        print("Correo enviado exitosamente")
+        print("Conexión cerrada")
         return True
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"Error de autenticación SMTP: {str(e)}")
+        print("Esto puede deberse a:")
+        print("1. Contraseña incorrecta")
+        print("2. Acceso de aplicaciones menos seguras desactivado")
+        print("3. Autenticación de dos factores activada sin contraseña de aplicación")
+        return False
     except Exception as e:
         print(f"Error enviando correo: {str(e)}")
         return False
@@ -95,7 +111,7 @@ def initiate_password_reset(email: str) -> tuple[bool, str]:
             return True, "Se ha enviado un correo con las instrucciones para restablecer tu contraseña"
         else:
             print("Error al enviar el correo")
-            return False, "Error al enviar el correo de recuperación"
+            return False, "Error al enviar el correo de recuperación. Por favor, contacta al soporte técnico."
 
     except Exception as e:
         print(f"Error en el proceso de recuperación: {str(e)}")
