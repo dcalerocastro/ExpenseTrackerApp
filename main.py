@@ -58,7 +58,7 @@ st.markdown("""
             border-radius: 8px;
             padding: 0.5rem;
             background-color: #4A4FEB;
-            color: white;
+            color: white !important;
             border: none;
             margin: 0.5rem 0;
             font-size: 1rem;
@@ -69,10 +69,12 @@ st.markdown("""
             background-color: #2A2FBF;
             box-shadow: 0 4px 8px rgba(74, 79, 235, 0.3);
             transform: translateY(-1px);
+            color: white !important;
         }
         .stButton > button:active {
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(74, 79, 235, 0.2);
+            color: white !important;
         }
         .auth-form {
             max-width: 400px;
