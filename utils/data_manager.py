@@ -210,11 +210,19 @@ def load_transactions(user_id: int = None):
     finally:
         db.close()
 
-def update_category_notes(categoria: str, notas: str):
+def update_category_notes(categoria: str, notas: str, user_id: int = None):
     """Actualiza las notas de una categoría"""
     db = SessionLocal()
     try:
-        category = db.query(Category).filter(Category.categoria == categoria).first()
+        # Construir la consulta base
+        query = db.query(Category).filter(Category.categoria == categoria)
+
+        # Agregar filtro de usuario si se proporciona
+        if user_id is not None:
+            query = query.filter(Category.user_id == user_id)
+
+        category = query.first()
+
         if category:
             category.notas = notas
             db.commit()
@@ -227,7 +235,7 @@ def update_category_notes(categoria: str, notas: str):
     finally:
         db.close()
 
-def update_category_budget(categoria: str, presupuesto: float, fecha: datetime = None):
+def update_category_budget(categoria: str, presupuesto: float, fecha: datetime = None, user_id: int = None):
     """Actualiza el presupuesto de una categoría y guarda el histórico"""
     if fecha is None:
         fecha = datetime.now()
@@ -235,10 +243,19 @@ def update_category_budget(categoria: str, presupuesto: float, fecha: datetime =
     print(f"\n=== Actualizando presupuesto de {categoria} ===")
     print(f"Nuevo presupuesto: {presupuesto}")
     print(f"Fecha: {fecha}")
+    print(f"User ID: {user_id}")
 
     db = SessionLocal()
     try:
-        category = db.query(Category).filter(Category.categoria == categoria).first()
+        # Construir la consulta base
+        query = db.query(Category).filter(Category.categoria == categoria)
+
+        # Agregar filtro de usuario si se proporciona
+        if user_id is not None:
+            query = query.filter(Category.user_id == user_id)
+
+        category = query.first()
+
         if category:
             print(f"Categoría encontrada, ID: {category.id}")
 
