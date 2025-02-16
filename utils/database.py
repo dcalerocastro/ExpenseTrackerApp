@@ -25,10 +25,10 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Nuevas relaciones
+    # Relaciones
     email_accounts = relationship("EmailAccount", back_populates="user", cascade="all, delete-orphan")
-    transactions = relationship("Transaction", backref="user", cascade="all, delete-orphan")
-    categories = relationship("Category", backref="user", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
+    categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -63,7 +63,7 @@ class Transaction(Base):
     banco = Column(String, nullable=True)  # Nuevo campo para identificar el banco
     user_id = Column(Integer, ForeignKey('users.id'))
 
-    user = relationship("User", backref="transactions")
+    user = relationship("User", back_populates="transactions")
 
 class Category(Base):
     __tablename__ = "categories"
@@ -75,7 +75,7 @@ class Category(Base):
     presupuestos = relationship("BudgetHistory", back_populates="category")
     user_id = Column(Integer, ForeignKey('users.id'))
 
-    user = relationship("User", backref="categories")
+    user = relationship("User", back_populates="categories")
 
 class BudgetHistory(Base):
     __tablename__ = "budget_history"
@@ -92,7 +92,7 @@ def init_db():
         print("Eliminando tablas existentes...")
         Base.metadata.drop_all(bind=engine)
         print("Tablas eliminadas")
-        
+
         print("Iniciando creación de tablas...")
         Base.metadata.create_all(bind=engine)
         print("Tablas creadas exitosamente")
