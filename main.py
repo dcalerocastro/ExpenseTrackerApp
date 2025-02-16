@@ -450,11 +450,18 @@ elif page == "Gestionar Presupuestos":
                 print(f"Nuevo presupuesto: {nuevo_presupuesto}")
                 print(f"Fecha seleccionada: {fecha_seleccionada}")
 
+                # Actualizar el presupuesto
                 updated_budget = update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada)
                 updated_notes = update_category_notes(categoria, new_notes)
 
                 if updated_budget and updated_notes:
                     st.success("✅ Presupuesto y notas actualizados")
+                    # Forzar la recarga de los datos antes de rerun
+                    categories_with_budget = load_categories_with_budget(fecha_seleccionada)
+                    # Calcular el nuevo total
+                    total_budget = sum(float(presupuesto if presupuesto is not None else 0.0) 
+                                   for _, presupuesto, _ in categories_with_budget)
+                    print(f"Nuevo total de presupuestos: {total_budget}")
                     st.rerun()
                 else:
                     st.error("❌ Error al actualizar los datos")
