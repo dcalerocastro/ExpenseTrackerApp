@@ -411,12 +411,6 @@ elif page == "Gestionar Presupuestos":
                     key=f"notes_{categoria}",
                     height=100
                 )
-                if new_notes != notas:
-                    if st.button("💾 Guardar Notas", key=f"save_notes_{categoria}"):
-                        if update_category_notes(categoria, new_notes):
-                            st.success("✅ Notas actualizadas")
-                        else:
-                            st.error("❌ Error al actualizar las notas")
 
             with col2:
                 # Campo de presupuesto
@@ -427,9 +421,12 @@ elif page == "Gestionar Presupuestos":
                     key=f"budget_{categoria}"
                 )
 
-                if st.button("💰 Actualizar Presupuesto", key=f"update_{categoria}"):
-                    if update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada):
-                        st.success("✅ Presupuesto actualizado")
-                        st.rerun()  # Recargar para mostrar los cambios
-                    else:
-                        st.error("❌ Error al actualizar el presupuesto")
+            if st.button("💾 Actualizar y Guardar", key=f"update_{categoria}"):
+                updated_budget = update_category_budget(categoria, nuevo_presupuesto, fecha_seleccionada)
+                updated_notes = update_category_notes(categoria, new_notes)
+
+                if updated_budget and updated_notes:
+                    st.success("✅ Presupuesto y notas actualizados")
+                    st.rerun()  # Recargar para mostrar los cambios
+                else:
+                    st.error("❌ Error al actualizar los datos")
