@@ -9,8 +9,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE_URL = os.getenv("DATABASE_URL")
 print(f"Inicializando base de datos con URL: {DATABASE_URL}")
 
-# Crear el motor de la base de datos
-engine = create_engine(DATABASE_URL)
+# Crear el motor de la base de datos con echo=True para ver las consultas SQL
+engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Crear la base para los modelos
@@ -30,19 +30,13 @@ class User(Base):
     transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
     categories = relationship("Category", back_populates="user", cascade="all, delete-orphan")
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
 class EmailAccount(Base):
     __tablename__ = "email_accounts"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, nullable=False)
     encrypted_password = Column(String, nullable=False)
-    bank_name = Column(String, nullable=False)  # 'BCP', 'INTERBANK', 'SCOTIABANK'
+    bank_name = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     last_sync = Column(DateTime, nullable=True)
@@ -58,9 +52,9 @@ class Transaction(Base):
     monto = Column(Float, nullable=False)
     descripcion = Column(String, nullable=False)
     categoria = Column(String, nullable=False)
-    tipo = Column(String, nullable=False)  # 'real' o 'proyectado'
+    tipo = Column(String, nullable=False)
     moneda = Column(String, nullable=False, default='PEN')
-    banco = Column(String, nullable=True)  # Nuevo campo para identificar el banco
+    banco = Column(String, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", back_populates="transactions")
@@ -86,26 +80,26 @@ class BudgetHistory(Base):
     monto = Column(Float, nullable=False)
     category = relationship("Category", back_populates="presupuestos")
 
-# Crear las tablas
 def init_db():
+    """Initialize the database by creating all tables"""
     try:
-        print("Eliminando tablas existentes...")
-        Base.metadata.drop_all(bind=engine)
-        print("Tablas eliminadas")
+        print("\n=== Inicializando Base de Datos ===")
 
-        print("Iniciando creación de tablas...")
+        # Intentar crear las tablas sin eliminar las existentes primero
+        print("Creando tablas si no existen...")
         Base.metadata.create_all(bind=engine)
-        print("Tablas creadas exitosamente")
 
         # Verificar las tablas creadas
         inspector = MetaData()
         inspector.reflect(bind=engine)
-        print("Tablas en la base de datos:")
+        print("\nTablas en la base de datos:")
         for table in inspector.tables:
             print(f"- {table}")
+
+        return True
     except Exception as e:
-        print(f"Error al crear tablas: {str(e)}")
-        raise e
+        print(f"\nError crítico al inicializar la base de datos: {str(e)}")
+        return False
 
 # Obtener una sesión de la base de datos
 def get_db():
