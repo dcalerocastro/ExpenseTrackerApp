@@ -1,9 +1,10 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData, ForeignKey, Text
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, MetaData, ForeignKey, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.fernet import Fernet
 
 # Obtener la URL de la base de datos del entorno
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -25,11 +26,28 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Nuevas relaciones
+    email_accounts = relationship("EmailAccount", back_populates="user")
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class EmailAccount(Base):
+    __tablename__ = "email_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, nullable=False)
+    encrypted_password = Column(String, nullable=False)
+    bank_name = Column(String, nullable=False)  # 'BCP', 'INTERBANK', 'SCOTIABANK'
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_sync = Column(DateTime, nullable=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="email_accounts")
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -41,6 +59,7 @@ class Transaction(Base):
     categoria = Column(String, nullable=False)
     tipo = Column(String, nullable=False)  # 'real' o 'proyectado'
     moneda = Column(String, nullable=False, default='PEN')
+    banco = Column(String, nullable=True)  # Nuevo campo para identificar el banco
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", backref="transactions")
@@ -123,7 +142,9 @@ def migrate_csv_to_sql():
                     descripcion=str(row['descripcion']),
                     categoria=str(row['categoria']),
                     tipo=str(row['tipo']),
-                    moneda = str(row.get('moneda', 'PEN')) # Handle missing moneda column
+                    moneda = str(row.get('moneda', 'PEN')), # Handle missing moneda column
+                    banco = str(row.get('banco', None)) # Handle missing banco column
+
                 )
                 db.add(transaction)
 

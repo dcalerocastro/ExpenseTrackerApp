@@ -15,6 +15,9 @@ from utils.data_manager import (
 from utils.auth import register_user, validate_login
 import os
 from utils.database import init_db
+# Add import for new functions
+from utils.email_manager import get_email_accounts, save_email_account, decrypt_password, update_last_sync
+
 
 # Initialize database tables
 print("Iniciando creación de tablas...")
@@ -522,18 +525,67 @@ elif page == "Gestionar Presupuestos":
                     st.error("❌ Error al actualizar los datos")
 
 elif page == "Sincronizar Correos":
-    st.title("Sincronización de Notificaciones BCP")
+    st.title("Sincronización de Notificaciones Bancarias")
 
     st.info("""
-    Para sincronizar tus notificaciones del BCP, necesitas configurar tu cuenta de Gmail.
-    La aplicación solo leerá los correos de notificaciones del BCP.
+    Configura tus cuentas de correo para sincronizar notificaciones de diferentes bancos.
+    La aplicación solo leerá los correos de notificaciones bancarias.
     """)
 
-    # Formulario de configuración de Gmail
-    with st.form("gmail_config"):
-        email = st.text_input("Correo Gmail", value=os.getenv('EMAIL_USER', ''))
-        password = st.text_input("Contraseña de Aplicación", type="password", 
-                               help="Contraseña de 16 caracteres generada por Google")
+    # Mostrar cuentas configuradas
+    accounts = get_email_accounts(user_id=st.session_state.user_id)
+    if accounts:
+        st.subheader("Cuentas Configuradas")
+        for account in accounts:
+            with st.expander(f"{account.bank_name} - {account.email}", expanded=False):
+                st.write(f"Última sincronización: {account.last_sync or 'Nunca'}")
+                st.write(f"Estado: {'Activa' if account.is_active else 'Inactiva'}")
+
+                # Botón para sincronizar esta cuenta específica
+                if st.button("Sincronizar Ahora", key=f"sync_{account.id}"):
+                    try:
+                        with st.spinner('Conectando con el servidor de correo...'):
+                            password = decrypt_password(account.encrypted_password)
+                            reader = EmailReader(account.email, password)
+                            transactions = reader.fetch_notifications(
+                                days_back=30,
+                                bank=account.bank_name
+                            )
+
+                            if transactions:
+                                st.success(f"Se encontraron {len(transactions)} notificaciones")
+                                # Agregar el banco a cada transacción
+                                for t in transactions:
+                                    t['banco'] = account.bank_name
+                                # Store transactions in session state
+                                if 'synced_transactions' not in st.session_state:
+                                    st.session_state.synced_transactions = []
+                                st.session_state.synced_transactions.extend(transactions)
+                                update_last_sync(account.id)
+                            else:
+                                st.warning("No se encontraron notificaciones en el período seleccionado")
+
+                    except Exception as e:
+                        st.error(f"Error al sincronizar: {str(e)}")
+
+    # Formulario para agregar nueva cuenta
+    st.divider()
+    st.subheader("Agregar Nueva Cuenta")
+    with st.form("new_email_account"):
+        bank = st.selectbox(
+            "Banco",
+            options=["BCP", "INTERBANK", "SCOTIABANK"],
+            help="Selecciona el banco para esta cuenta de correo"
+        )
+        email = st.text_input(
+            "Correo Gmail",
+            help="Correo electrónico donde recibes las notificaciones del banco"
+        )
+        password = st.text_input(
+            "Contraseña de Aplicación",
+            type="password",
+            help="Contraseña de 16 caracteres generada por Google"
+        )
 
         st.markdown("""
         ### ¿Cómo obtener la Contraseña de Aplicación?
@@ -544,87 +596,70 @@ elif page == "Sincronizar Correos":
         5. Copia la contraseña de 16 caracteres que Google te genera
         """)
 
-        submit_creds = st.form_submit_button("Guardar Credenciales")
+        submit_account = st.form_submit_button("Guardar Cuenta")
 
-        if submit_creds and email and password:
-            try:
-                os.environ['EMAIL_USER'] = email
-                os.environ['EMAIL_PASSWORD'] = password
-                st.success("¡Credenciales guardadas! Ahora puedes sincronizar tus notificaciones.")
-            except Exception as e:
-                st.error(f"Error al guardar credenciales: {str(e)}")
+        if submit_account and email and password:
+            success, message = save_email_account(
+                email=email,
+                password=password,
+                bank_name=bank,
+                user_id=st.session_state.user_id
+            )
+            if success:
+                st.success(message)
+                st.rerun()
+            else:
+                st.error(message)
 
-    # Only show sync button if credentials are configured
-    if os.getenv('EMAIL_USER') and os.getenv('EMAIL_PASSWORD'):
-        st.divider()
-        days_back = st.slider("Días hacia atrás para buscar", 1, 90, 30)
+    # Display synced transactions
+    if hasattr(st.session_state, 'synced_transactions') and st.session_state.synced_transactions:
+        st.subheader(f"Transacciones Pendientes ({len(st.session_state.synced_transactions)})")
 
-        if st.button("Sincronizar Notificaciones"):
-            try:
-                with st.spinner('Conectando con el servidor de correo...'):
-                    reader = EmailReader(os.getenv('EMAIL_USER'), os.getenv('EMAIL_PASSWORD'))
-                    transactions = reader.fetch_bcp_notifications(days_back)
+        for idx, transaction in enumerate(st.session_state.synced_transactions):
+            with st.expander(
+                f"{transaction['banco']} - {transaction['descripcion']} - "
+                f"S/. {transaction['monto']:.2f}",
+                expanded=True
+            ):
+                col1, col2 = st.columns([3, 1])
 
-                    if transactions:
-                        st.success(f"Se encontraron {len(transactions)} notificaciones")
-                        # Store transactions in session state
-                        st.session_state.synced_transactions = transactions
-                    else:
-                        st.warning("No se encontraron notificaciones en el período seleccionado")
+                with col1:
+                    st.write(f"📅 Fecha: {transaction['fecha'].strftime('%d/%m/%Y')}")
+                    st.write(f"💰 Monto: S/. {transaction['monto']:.2f}")
+                    st.write(f"📝 Descripción: {transaction['descripcion']}")
+                    st.write(f"🏦 Banco: {transaction['banco']}")
 
-            except Exception as e:
-                st.error(f"Error al sincronizar: {str(e)}")
+                    # Agregar categoría a la transacción
+                    transaction['categoria'] = st.selectbox(
+                        "🏷️ Categoría",
+                        options=st.session_state.categories,
+                        key=f"cat_{idx}"
+                    )
 
-        # Display synced transactions
-        if st.session_state.synced_transactions:
-            st.subheader(f"Transacciones Pendientes ({len(st.session_state.synced_transactions)})")
+                with col2:
+                    if st.button("💾 Guardar", key=f"save_{idx}"):
+                        try:
+                            save_data = {
+                                'fecha': transaction['fecha'],
+                                'monto': float(transaction['monto']),
+                                'descripcion': transaction['descripcion'],
+                                'categoria': transaction['categoria'],
+                                'banco': transaction['banco'],
+                                'moneda': transaction.get('moneda', 'PEN')
+                            }
 
-            for idx, transaction in enumerate(st.session_state.synced_transactions):
-                with st.expander(f"Transacción: {transaction['descripcion']} - S/. {transaction['monto']:.2f}", expanded=True):
-                    col1, col2 = st.columns([3, 1])
+                            if save_transaction(save_data, user_id=st.session_state.user_id):
+                                st.session_state.synced_transactions.pop(idx)
+                                update_transactions()
+                                st.success("¡Transacción guardada exitosamente!")
+                                st.rerun()
+                            else:
+                                st.error("Error: No se pudo guardar la transacción")
 
-                    with col1:
-                        st.write(f"📅 Fecha: {transaction['fecha'].strftime('%d/%m/%Y')}")
-                        st.write(f"💰 Monto: S/. {transaction['monto']:.2f}")
-                        st.write(f"📝 Descripción: {transaction['descripcion']}")
+                        except Exception as e:
+                            st.error(f"Error inesperado: {str(e)}")
 
-                        # Agregar categoría a la transacción
-                        transaction['categoria'] = st.selectbox(
-                            "🏷️ Categoría",
-                            options=st.session_state.categories,
-                            key=f"cat_{idx}"
-                        )
-
-                    with col2:
-                        if st.button("💾 Guardar", key=f"save_{idx}"):
-                            try:
-                                # Crear una copia de la transacción para no modificar el original
-                                save_data = {
-                                    'fecha': transaction['fecha'],
-                                    'monto': float(transaction['monto']),
-                                    'descripcion': transaction['descripcion'],
-                                    'categoria': transaction['categoria'],
-                                    'moneda': transaction.get('moneda', 'PEN')
-                                }
-
-                                print(f"\n=== Guardando transacción {idx} ===")
-                                print(f"Datos a guardar: {save_data}")
-
-                                if save_transaction(save_data, user_id=st.session_state.user_id):
-                                    # Remove saved transaction from session state
-                                    st.session_state.synced_transactions.pop(idx)
-                                    update_transactions()
-                                    st.success("¡Transacción guardada exitosamente!")
-                                    st.rerun()
-                                else:
-                                    st.error("Error: No se pudo guardar la transacción")
-
-                            except Exception as e:
-                                print(f"Error guardando transacción: {str(e)}")
-                                st.error(f"Error inesperado: {str(e)}")
-
-                        if st.button("❌ Descartar", key=f"discard_{idx}"):
-                            # Remove discarded transaction from session state
-                            st.session_state.synced_transactions.pop(idx)
-                            st.success("Transacción descartada")
-                            st.rerun()
+                    if st.button("❌ Descartar", key=f"discard_{idx}"):
+                        st.session_state.synced_transactions.pop(idx)
+                        st.success("Transacción descartada")
+                        st.rerun()

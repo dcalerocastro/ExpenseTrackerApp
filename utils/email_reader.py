@@ -11,6 +11,22 @@ class EmailReader:
         self.email_password = email_password
         self.imap_server = "imap.gmail.com"  # Por defecto Gmail
 
+        # Configuración por banco
+        self.bank_configs = {
+            'BCP': {
+                'sender': "notificaciones@notificacionesbcp.com.pe",
+                'subject_filter': None
+            },
+            'INTERBANK': {
+                'sender': "noreply@interbank.com.pe",
+                'subject_filter': "Aviso de Operación"
+            },
+            'SCOTIABANK': {
+                'sender': "noreply@scotiabank.com.pe",
+                'subject_filter': "Alerta de Transacción"
+            }
+        }
+
     def connect(self):
         """Establece conexión con el servidor IMAP"""
         try:
@@ -33,11 +49,16 @@ class EmailReader:
             else:
                 raise Exception(f"Error al conectar con Gmail: {error_msg}")
 
-    def fetch_bcp_notifications(self, days_back=30):
+    def fetch_notifications(self, days_back=30, bank='BCP'):
         """
-        Busca y procesa correos de notificaciones del BCP
+        Busca y procesa correos de notificaciones del banco especificado
         """
+        if bank not in self.bank_configs:
+            raise ValueError(f"Banco no soportado: {bank}")
+
+        bank_config = self.bank_configs[bank]
         transactions = []
+
         try:
             if not hasattr(self, 'imap'):
                 if not self.connect():
@@ -50,8 +71,11 @@ class EmailReader:
             since_date = (datetime.now() - timedelta(days=days_back)).strftime("%d-%b-%Y")
             print(f"Buscando correos desde: {since_date}")
 
-            # Buscar correos del BCP por remitente y fecha
-            search_query = f'FROM "notificaciones@notificacionesbcp.com.pe" SINCE "{since_date}"'
+            # Construir query de búsqueda
+            search_query = f'FROM "{bank_config["sender"]}" SINCE "{since_date}"'
+            if bank_config['subject_filter']:
+                search_query += f' SUBJECT "{bank_config["subject_filter"]}"'
+
             print(f"Ejecutando búsqueda con query: {search_query}")
             result, messages = self.imap.search(None, search_query)
             print(f"Resultado de búsqueda: {result}")
@@ -83,7 +107,7 @@ class EmailReader:
                                     except UnicodeDecodeError:
                                         content = part.get_payload(decode=True).decode('latin-1')
 
-                                    transaction = parse_email_content(content)
+                                    transaction = parse_email_content(content, bank=bank)
                                     if transaction:
                                         transactions.append(transaction)
                                         print(f"Transacción encontrada: {transaction}")
@@ -94,11 +118,10 @@ class EmailReader:
                             except UnicodeDecodeError:
                                 content = email_message.get_payload(decode=True).decode('latin-1')
 
-                            transaction = parse_email_content(content)
+                            transaction = parse_email_content(content, bank=bank)
                             if transaction:
-                                # Asegurarse de que la transacción tiene todos los campos necesarios
                                 transaction['tipo'] = 'real'  # Marcar como transacción real
-                                if all(key in transaction for key in ['fecha', 'monto', 'descripcion', 'categoria']):
+                                if all(key in transaction for key in ['fecha', 'monto', 'descripcion']):
                                     transactions.append(transaction)
                                     print(f"Transacción encontrada y validada: {transaction}")
                                 else:
