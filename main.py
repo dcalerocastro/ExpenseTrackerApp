@@ -62,10 +62,17 @@ st.markdown("""
             border: none;
             margin: 0.5rem 0;
             font-size: 1rem;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(74, 79, 235, 0.2);
         }
         .stButton > button:hover {
-            background-color: #3A3FD9;
+            background-color: #2A2FBF;
+            box-shadow: 0 4px 8px rgba(74, 79, 235, 0.3);
+            transform: translateY(-1px);
+        }
+        .stButton > button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(74, 79, 235, 0.2);
         }
         .auth-form {
             max-width: 400px;
@@ -104,14 +111,23 @@ st.markdown("""
         .stTextInput > div > div {
             border-radius: 8px;
             border: 1px solid #ddd;
+            transition: border-color 0.3s ease;
+        }
+        .stTextInput > div > div:focus-within {
+            border-color: #4A4FEB;
+            box-shadow: 0 0 0 2px rgba(74, 79, 235, 0.2);
         }
         div[role="radiogroup"] > div {
             margin: 0.5rem 0;
             padding: 0.5rem;
             border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
         }
         div[role="radiogroup"] > div:hover {
-            background-color: rgba(74, 79, 235, 0.1);
+            background-color: rgba(74, 79, 235, 0.15);
+        }
+        div[role="radiogroup"] > div[data-checked="true"] {
+            background-color: rgba(74, 79, 235, 0.2);
         }
         .st-emotion-cache-1inwz65 {
             font-size: 1rem;
@@ -121,6 +137,10 @@ st.markdown("""
         .streamlit-expanderHeader {
             background-color: rgba(74, 79, 235, 0.1);
             border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+        .streamlit-expanderHeader:hover {
+            background-color: rgba(74, 79, 235, 0.2);
         }
         .streamlit-expanderContent {
             border-radius: 0 0 8px 8px;
